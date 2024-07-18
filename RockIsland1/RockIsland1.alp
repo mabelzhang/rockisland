@@ -19,6 +19,9 @@
 			<Name><![CDATA[Main]]></Name>
 			<AdditionalClassCode><![CDATA[int year, coal, hydro, gas, diesel, wind, solar;
 
+// Does not include header row. Used to index time stack chart
+int rowI = -1;
+
 int simYear = 0;
 
 // TODO vectorize data instead of having 6 variables
@@ -31,7 +34,8 @@ final int STK_DIESEL_I = 3;
 final int STK_WIND_I = 4;
 final int STK_SOLAR_I = 5;
 ]]></AdditionalClassCode>
-			<Import><![CDATA[import com.anylogic.engine.analysis.DataItem;]]></Import>
+			<Import><![CDATA[import com.anylogic.engine.analysis.DataItem;
+import com.anylogic.engine.analysis.DataSet;]]></Import>
 			<StartupCode><![CDATA[// TODO read csv header
 String header = capacityCsv.readLine();
 System.out.println(header);
@@ -160,11 +164,130 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 						</RecurrenceCode>
 						<Condition><![CDATA[false]]></Condition>
 					</Properties>
+					<Action><![CDATA[// Update single-bar stacked chart
+// get() returns DataItem
+if (capacityStacked.get(STK_COAL_I) != null)
+{
+  capacityStacked.get(STK_COAL_I).setValue(coal);
+}
+if (capacityStacked.get(STK_HYDRO_I) != null)
+{
+  capacityStacked.get(STK_HYDRO_I).setValue(hydro);
+}
+if (capacityStacked.get(STK_GAS_I) != null)
+{
+  capacityStacked.get(STK_GAS_I).setValue(gas);
+}
+if (capacityStacked.get(STK_DIESEL_I) != null)
+{
+  capacityStacked.get(STK_DIESEL_I).setValue(diesel);
+}
+if (capacityStacked.get(STK_WIND_I) != null)
+{
+  capacityStacked.get(STK_WIND_I).setValue(wind);
+}
+if (capacityStacked.get(STK_SOLAR_I) != null)
+{
+  capacityStacked.get(STK_SOLAR_I).setValue(solar);
+}
+
+capacityStacked.refresh();]]></Action>
+				</Event>
+				<Event>
+					<Id>1721301792263</Id>
+					<Name><![CDATA[updateTimeStacked]]></Name>
+					<X>-164</X><Y>767</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties TriggerType="rate" Mode="occuresOnce">
+						<Timeout Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+						</Timeout>
+						<Rate Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="RateUnits"><![CDATA[PER_YEAR]]></Unit>
+						</Rate>
+						<OccurrenceAtTime>true</OccurrenceAtTime>
+						<OccurrenceDate>1721289600000</OccurrenceDate>
+						<OccurrenceTime Class="CodeUnitValue">
+							<Code><![CDATA[0]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+						</OccurrenceTime>
+						<RecurrenceCode Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+						</RecurrenceCode>
+						<Condition><![CDATA[false]]></Condition>
+					</Properties>
+					<Action><![CDATA[int simYearRaw = simYear - 1940;
+
+// get() returns DataSet. 1 DataSet per color
+if (capacityTimeStacked.get(STK_COAL_I) != null)
+{
+  capacityTimeStacked.get(STK_COAL_I).add(simYearRaw, coal);
+}
+if (capacityTimeStacked.get(STK_HYDRO_I) != null)
+{
+  capacityTimeStacked.get(STK_HYDRO_I).add(simYearRaw, hydro);
+}
+if (capacityTimeStacked.get(STK_GAS_I) != null)
+{
+  capacityTimeStacked.get(STK_GAS_I).add(simYearRaw, gas);
+}
+if (capacityTimeStacked.get(STK_DIESEL_I) != null)
+{
+  capacityTimeStacked.get(STK_DIESEL_I).add(simYearRaw, diesel);
+}
+if (capacityTimeStacked.get(STK_WIND_I) != null)
+{
+  capacityTimeStacked.get(STK_WIND_I).add(simYearRaw, wind);
+}
+if (capacityTimeStacked.get(STK_SOLAR_I) != null)
+{
+  capacityTimeStacked.get(STK_SOLAR_I).add(simYearRaw, solar);
+}
+
+capacityStacked.refresh();
+]]></Action>
+				</Event>
+				<Event>
+					<Id>1721301835197</Id>
+					<Name><![CDATA[readCsvLine]]></Name>
+					<X>-154</X><Y>667</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties TriggerType="rate" Mode="occuresOnce">
+						<Timeout Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+						</Timeout>
+						<Rate Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="RateUnits"><![CDATA[PER_YEAR]]></Unit>
+						</Rate>
+						<OccurrenceAtTime>true</OccurrenceAtTime>
+						<OccurrenceDate>1721289600000</OccurrenceDate>
+						<OccurrenceTime Class="CodeUnitValue">
+							<Code><![CDATA[0]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+						</OccurrenceTime>
+						<RecurrenceCode Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+						</RecurrenceCode>
+						<Condition><![CDATA[false]]></Condition>
+					</Properties>
 					<Action><![CDATA[// Update to current sim time
 simYear = date().getYear() + 1900;
 System.out.println(simYear);
 
-if (simYear > year && capacityCsv.canReadMore()) {
+if (simYear > year && capacityCsv.canReadMore())
+{
   year = capacityCsv.readInt();
   coal = capacityCsv.readInt();
   hydro = capacityCsv.readInt();
@@ -173,28 +296,9 @@ if (simYear > year && capacityCsv.canReadMore()) {
   wind = capacityCsv.readInt();
   solar = capacityCsv.readInt();
 
+  rowI++;
+
   //System.out.println(coal);
-
-  if (capacityStacked.get(STK_COAL_I) != null) {
-    capacityStacked.get(STK_COAL_I).setValue(coal);
-  }
-  if (capacityStacked.get(STK_HYDRO_I) != null) {
-    capacityStacked.get(STK_HYDRO_I).setValue(hydro);
-  }
-  if (capacityStacked.get(STK_GAS_I) != null) {
-    capacityStacked.get(STK_GAS_I).setValue(gas);
-  }
-  if (capacityStacked.get(STK_DIESEL_I) != null) {
-    capacityStacked.get(STK_DIESEL_I).setValue(diesel);
-  }
-  if (capacityStacked.get(STK_WIND_I) != null) {
-    capacityStacked.get(STK_WIND_I).setValue(wind);
-  }
-  if (capacityStacked.get(STK_SOLAR_I) != null) {
-    capacityStacked.get(STK_SOLAR_I).setValue(solar);
-  }
-
-  capacityStacked.refresh();
 }]]></Action>
 				</Event>
 			</Events>
@@ -475,7 +579,7 @@ if (simYear > year && capacityCsv.canReadMore()) {
 					<Id>1721139666834</Id>
 					<Name><![CDATA[capacityStacked]]></Name>
 					<Description><![CDATA[Island Grid Capacity]]></Description>
-					<X>30</X><Y>700</Y>
+					<X>570</X><Y>710</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -560,6 +664,107 @@ if (simYear > year && capacityCsv.canReadMore()) {
 						<RelativeWidth>0.8</RelativeWidth>
 					</Bars>
     			</StackChart>
+    			<TimeStackChart>
+					<Id>1721300948441</Id>
+					<Name><![CDATA[capacityTimeStacked]]></Name>
+					<X>20</X><Y>690</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<AutoUpdate>false</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1721376000000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+					</RecurrenceCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Width>530</Width>
+					<Height>330</Height>
+					<BackgroundColor/>
+					<BorderColor/>
+					<ChartArea>
+						<XOffset>50</XOffset>
+						<YOffset>30</YOffset>
+						<Width>450</Width>
+						<Height>240</Height>
+						<BackgroundColor>-1</BackgroundColor>
+						<BorderColor>-16777216</BorderColor>
+						<GridColor>-12566464</GridColor>
+					</ChartArea>
+					<Legend>
+						<Place>SOUTH</Place>
+						<TextColor>-16777216</TextColor>
+						<Size>30</Size>
+					</Legend>
+					<Labels>
+						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
+						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
+						<TextColor>-12566464</TextColor>
+					</Labels>
+					<ShowLegend>true</ShowLegend>
+					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
+					<TimeWindowUnits>YEAR</TimeWindowUnits>
+					<TimeWindowExpression><![CDATA[161]]></TimeWindowExpression>
+					<DatasetExpression>
+					<Id>1721300950468</Id>
+					<Expression><![CDATA[my_dataset]]></Expression>
+					<Color>-16777216</Color>
+					<Expression2><![CDATA[10]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+							<Title><![CDATA[coal]]></Title>
+					</DatasetExpression>
+					<DatasetExpression>
+					<Id>1721301182378</Id>
+					<Expression><![CDATA[my_dataset1]]></Expression>
+					<Color>-14774017</Color>
+					<Expression2><![CDATA[20]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+							<Title><![CDATA[hydro]]></Title>
+					</DatasetExpression>
+					<DatasetExpression>
+					<Id>1721301221923</Id>
+					<Expression><![CDATA[my_dataset2]]></Expression>
+					<Color>-4144960</Color>
+					<Expression2><![CDATA[40]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+							<Title><![CDATA[gas]]></Title>
+					</DatasetExpression>
+					<DatasetExpression>
+					<Id>1721301243621</Id>
+					<Expression><![CDATA[my_dataset3]]></Expression>
+					<Color>-29696</Color>
+					<Expression2><![CDATA[30]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+							<Title><![CDATA[diesel]]></Title>
+					</DatasetExpression>
+					<DatasetExpression>
+					<Id>1721301264473</Id>
+					<Expression><![CDATA[my_dataset4]]></Expression>
+					<Color>-6632142</Color>
+					<Expression2><![CDATA[50]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+							<Title><![CDATA[wind]]></Title>
+					</DatasetExpression>
+					<DatasetExpression>
+					<Id>1721301271482</Id>
+					<Expression><![CDATA[my_dataset5]]></Expression>
+					<Color>-256</Color>
+					<Expression2><![CDATA[20]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+							<Title><![CDATA[solar]]></Title>
+					</DatasetExpression>
+					<SamplesToKeep>161</SamplesToKeep>
+					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
+					<VerScaleType>AUTO</VerScaleType>
+					<LabelFormat>yyyy</LabelFormat>
+    			</TimeStackChart>
 			</Presentation>
 
 				</Level>
@@ -635,6 +840,9 @@ if (simYear > year && capacityCsv.canReadMore()) {
 			<MaximumMemory>512</MaximumMemory>
 			<RandomNumberGenerationType>fixedSeed</RandomNumberGenerationType>
 			<CustomGeneratorCode>new Random()</CustomGeneratorCode>
+			<AfterSimulationRunCode><![CDATA[// Start paused
+getEngine().pause();
+]]></AfterSimulationRunCode>
 			<SeedValue>1</SeedValue>
 			<SelectionModeForSimultaneousEvents>LIFO</SelectionModeForSimultaneousEvents>
 			<VmArgs><![CDATA[]]></VmArgs>
@@ -667,19 +875,19 @@ if (simYear > year && capacityCsv.canReadMore()) {
 			<Parameters>			
 			</Parameters>			
 			<PresentationProperties>
-				<EnableZoomAndPanning>true</EnableZoomAndPanning>
+				<EnableZoomAndPanning>false</EnableZoomAndPanning>
 				<ExecutionMode><![CDATA[realTimeScaled]]></ExecutionMode>
-				<Title><![CDATA[RockIsland1 : Simulation]]></Title>	
+				<Title><![CDATA[RockIsland1]]></Title>	
 				<EnableDeveloperPanel>true</EnableDeveloperPanel>
 				<ShowDeveloperPanelOnStart>true</ShowDeveloperPanelOnStart>
 				<RealTimeScale>10.0</RealTimeScale>
 			</PresentationProperties>
 			<ModelTimeProperties>
 				<StopOption><![CDATA[Stop at specified date]]></StopOption>
-				<InitialDate><![CDATA[-946771200000]]></InitialDate>	
+				<InitialDate><![CDATA[-978307200000]]></InitialDate>	
 				<InitialTime><![CDATA[0.0]]></InitialTime>	
 				<FinalDate><![CDATA[4133937540000]]></FinalDate>	
-				<FinalTime><![CDATA[161.10821727549467]]></FinalTime>	
+				<FinalTime><![CDATA[162.10821727549467]]></FinalTime>	
 			</ModelTimeProperties>
 			<BypassInitialScreen>true</BypassInitialScreen>
 		</SimulationExperiment>	
