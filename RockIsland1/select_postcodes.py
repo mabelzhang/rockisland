@@ -7,7 +7,7 @@ pc_path = 'inputs/OrkneyPostcodes.csv'
 sel_path = 'inputs/OrkneyPostcodesRandomlySelected.csv'
 
 num_pcs = 0
-num_sel = 100
+num_sel = 50
 
 fieldnames = []
 
@@ -36,6 +36,8 @@ print(f'Randomly selected {num_sel:d} rows')
 #print(sel_rows)
 
 # Open output file to write to
+# TODO: This currently writes to csv file. AnyLogic takes Excel file as input.
+# Would need third party library to write to Excel file from Python.
 sel_file = open(sel_path, 'w', newline='')
 sel_writer = csv.DictWriter(sel_file, fieldnames)
 sel_writer.writeheader()
