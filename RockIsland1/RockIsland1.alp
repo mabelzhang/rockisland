@@ -49,6 +49,8 @@ int simYear = 0;
 
 // Does not include header row. Used to index time stack chart
 int rowI = -1;
+
+boolean distanceCalculated = false;
 ]]></AdditionalClassCode>
 			<Import><![CDATA[import com.anylogic.engine.analysis.DataItem;
 import com.anylogic.engine.analysis.DataSet;
@@ -229,7 +231,7 @@ updateDemandPlot();]]></Action>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Properties TriggerType="timeout" Mode="occuresOnce">
+					<Properties TriggerType="condition" Mode="occuresOnce">
 						<Timeout Class="CodeUnitValue">
 							<Code><![CDATA[1]]></Code>
 							<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
@@ -248,7 +250,7 @@ updateDemandPlot();]]></Action>
 							<Code><![CDATA[1]]></Code>
 							<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
 						</RecurrenceCode>
-						<Condition><![CDATA[false]]></Condition>
+						<Condition><![CDATA[!distanceCalculated]]></Condition>
 					</Properties>
 					<Action><![CDATA[calcDistances();
 ]]></Action>
@@ -371,17 +373,19 @@ demandPlot.refresh();
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// km
+					<Body><![CDATA[// Only calculate once
+if (distanceCalculated)
+{
+  return;
+}
+
+// km
 double distToKirkwall = 0.0;
 
 // Only used for visualizing routes
-ShapeGISMap map = null;
-// There's only 1 map object. All agents share it
-if (postCodes.size() > 0)
-{
-  map = (ShapeGISMap) (postCodes.get(0).getGISMap());
-}
-if (map == null)
+GISRoute route = null;
+ShapeGISMap gismap = this.map;
+if (gismap == null)
 {
   System.err.println("No ShapeGISMap found in agent");
 }
@@ -391,19 +395,25 @@ for (int i = 0; i < postCodes.size(); ++i)
 {
   // distanceByRoute() returns meters
   distToKirkwall = 0.001 * postCodes.get(i).distanceByRoute(centralKirkwall);
-  System.out.println("Distance from " + postCodes.get(i).postcode + " to Kirkwall: " + distToKirkwall + " km");
+  // For some reason directly accessing get(i).latitude (csv column name)
+  // always gets 0, but get(i).getLatitude() gives the correct value.
+  System.out.printf("Distance from %s (%g, %g) to Kirkwall: %.2g km\n",
+    postCodes.get(i).postcode, postCodes.get(i).getLatitude(),
+    postCodes.get(i).getLongitude(), distToKirkwall);
 
-  // Get route to visualize
-  if (map != null)
+  // Visualize route
+  if (gismap != null)
   {
-    GISRoute route = map.getRoute(
-      postCodes.get(i).latitude,
-      postCodes.get(i).longitude,
-      centralKirkwall.latitude,
-      centralKirkwall.longitude);
+    route = gismap.getRoute(
+      postCodes.get(i).getLatitude(),
+      postCodes.get(i).getLongitude(),
+      centralKirkwall.getLatitude(),
+      centralKirkwall.getLongitude());
     route.setVisible(true);
   }
 }
+
+distanceCalculated = true;
 ]]></Body>
 				</Function>
 			</Functions>
@@ -652,7 +662,7 @@ for (int i = 0; i < postCodes.size(); ++i)
 					</Replication>
 					<CollectionType>ARRAY_LIST_BASED</CollectionType>
 					<InEnvironment>true</InEnvironment>	
-					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
+					<InitialLocationType>XYZ</InitialLocationType>
 					<XCode Class="CodeValue">
 						<Code><![CDATA[0]]></Code>
 					</XCode>
@@ -669,10 +679,10 @@ for (int i = 0; i < postCodes.size(); ++i)
 						<Code><![CDATA[0]]></Code>
 					</RowCode>
 					<LatitudeCode Class="CodeValue">
-						<Code><![CDATA[0]]></Code>
+						<Code><![CDATA[58.983016]]></Code>
 					</LatitudeCode>
 					<LongitudeCode Class="CodeValue">
-						<Code><![CDATA[0]]></Code>
+						<Code><![CDATA[-2.961687]]></Code>
 					</LongitudeCode>
 					<LocationNameCode Class="CodeValue">
 						<Code><![CDATA[""]]></Code>
