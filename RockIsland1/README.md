@@ -4,9 +4,11 @@
   writes to a csv file.
   But Anylogic takes Excel file as input.
   Would need third party library to write to Excel file from Python.
+  Currently, the csv file is manually converted to .xlsx format, so that
+  AnyLogic can import it to a population agent.
 
 - AnyLogic Database does not automatically refresh when the postcodes input
-  file is changed.
+  .xlsx file is changed.
   User needs to click on Database > New > Database table, to reload the same
   file, in order for it to update. That is not sustainable for changing the
   randomly selected list of postcodes outside AnyLogic.

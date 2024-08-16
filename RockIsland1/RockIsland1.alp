@@ -53,6 +53,10 @@ int rowI = -1;
 			<Import><![CDATA[import com.anylogic.engine.analysis.DataItem;
 import com.anylogic.engine.analysis.DataSet;
 
+//import com.anylogic.engine.AbstractShapeGISMap;
+import com.anylogic.engine.markup.GISRoute;
+//import com.anylogic.engine.LengthUnits;
+
 import java.util.Random;]]></Import>
 			<StartupCode><![CDATA[// TODO read csv header
 String header = capacityCsv.readLine();
@@ -217,6 +221,38 @@ updateStacked();
 updateTimeStacked();
 updateDemandPlot();]]></Action>
 				</Event>
+				<Event>
+					<Id>1723833372872</Id>
+					<Name><![CDATA[updateTransport]]></Name>
+					<X>-160</X><Y>90</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties TriggerType="timeout" Mode="occuresOnce">
+						<Timeout Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+						</Timeout>
+						<Rate Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="RateUnits"><![CDATA[PER_YEAR]]></Unit>
+						</Rate>
+						<OccurrenceAtTime>true</OccurrenceAtTime>
+						<OccurrenceDate>1723881600000</OccurrenceDate>
+						<OccurrenceTime Class="CodeUnitValue">
+							<Code><![CDATA[0]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+						</OccurrenceTime>
+						<RecurrenceCode Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+						</RecurrenceCode>
+						<Condition><![CDATA[false]]></Condition>
+					</Properties>
+					<Action><![CDATA[calcDistances();
+]]></Action>
+				</Event>
 			</Events>
 			<Functions>
 				<Function AccessType="default" StaticFunction="false">
@@ -325,12 +361,57 @@ if (demandPlot.get(LINE_DEMAND_I) != null)
 demandPlot.refresh();
 ]]></Body>
 				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1723824937529</Id>
+					<Name><![CDATA[calcDistances]]></Name>
+					<X>-160</X><Y>180</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[// km
+double distToKirkwall = 0.0;
+
+// Only used for visualizing routes
+ShapeGISMap map = null;
+// There's only 1 map object. All agents share it
+if (postCodes.size() > 0)
+{
+  map = (ShapeGISMap) (postCodes.get(0).getGISMap());
+}
+if (map == null)
+{
+  System.err.println("No ShapeGISMap found in agent");
+}
+
+// Calculate distance from each post code to a fixed location
+for (int i = 0; i < postCodes.size(); ++i)
+{
+  // distanceByRoute() returns meters
+  distToKirkwall = 0.001 * postCodes.get(i).distanceByRoute(centralKirkwall);
+  System.out.println("Distance from " + postCodes.get(i).postcode + " to Kirkwall: " + distToKirkwall + " km");
+
+  // Get route to visualize
+  if (map != null)
+  {
+    GISRoute route = map.getRoute(
+      postCodes.get(i).latitude,
+      postCodes.get(i).longitude,
+      centralKirkwall.latitude,
+      centralKirkwall.longitude);
+    route.setVisible(true);
+  }
+}
+]]></Body>
+				</Function>
 			</Functions>
 			<Connectivity>
 				<TextFile>
 					<Id>1721142067284</Id>
 					<Name><![CDATA[capacityCsv]]></Name>
-					<X>-150</X><Y>50</Y>
+					<X>-160</X><Y>680</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -373,7 +454,7 @@ demandPlot.refresh();
 				<EmbeddedObject>
 					<Id>1723229562691</Id>
 					<Name><![CDATA[postCodes]]></Name>
-					<X>-150</X><Y>80</Y>
+					<X>-160</X><Y>120</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -498,8 +579,112 @@ demandPlot.refresh();
 								<ClassName><![CDATA[orkney_postcodes_randomly_selected]]></ClassName>
 								<ItemName><![CDATA[altitude]]></ItemName>
 							</Value>
+						</Item>
+						<Item>
+							<Key>
+								<PackageName><![CDATA[rockisland1]]></PackageName>
+								<ClassName><![CDATA[PostCode]]></ClassName>
+								<ItemName><![CDATA[postcode]]></ItemName>
+							</Key>
+							<Value>
+								<PackageName><![CDATA[rockisland1]]></PackageName>
+								<ClassName><![CDATA[orkney_postcodes_randomly_selected]]></ClassName>
+								<ItemName><![CDATA[postcode]]></ItemName>
+							</Value>
 						</Item>	
 					</ParameterToDatabaseColumnMapping>
+				</EmbeddedObject>
+				<EmbeddedObject>
+					<Id>1723833133912</Id>
+					<Name><![CDATA[centralKirkwall]]></Name>
+					<X>-160</X><Y>150</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<PresentationId>1723833133914</PresentationId>
+					<ActiveObjectClass>
+						<PackageName><![CDATA[rockisland1]]></PackageName>
+						<ClassName><![CDATA[PostCode]]></ClassName>
+					</ActiveObjectClass>
+					<GenericParameterSubstitute>
+						<GenericParameterSubstituteReference>
+							<PackageName><![CDATA[rockisland1]]></PackageName>
+							<ClassName><![CDATA[PostCode]]></ClassName>
+							<ItemName><![CDATA[1723229562650]]></ItemName>
+						</GenericParameterSubstituteReference>
+					</GenericParameterSubstitute>
+					<Parameters>
+						<Parameter>
+							<Name><![CDATA[postcode]]></Name>
+							<Value Class="CodeValue">
+								<Code><![CDATA["KW15 1GU"]]></Code>
+							</Value>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[latitude]]></Name>
+							<Value Class="CodeValue">
+								<Code><![CDATA[58.983016]]></Code>
+							</Value>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[longitude]]></Name>
+							<Value Class="CodeValue">
+								<Code><![CDATA[-2.961687]]></Code>
+							</Value>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[ward]]></Name>
+							<Value Class="CodeValue">
+								<Code><![CDATA["Kirkwall West and Orphir"]]></Code>
+							</Value>
+						</Parameter>
+						<Parameter>
+							<Name><![CDATA[altitude]]></Name>
+							<Value Class="CodeValue">
+								<Code><![CDATA[4]]></Code>
+							</Value>
+						</Parameter>
+					</Parameters>
+					<ReplicationFlag>false</ReplicationFlag>
+					<Replication Class="CodeValue">
+						<Code><![CDATA[100]]></Code>
+					</Replication>
+					<CollectionType>ARRAY_LIST_BASED</CollectionType>
+					<InEnvironment>true</InEnvironment>	
+					<InitialLocationType>AT_ANIMATION_POSITION</InitialLocationType>
+					<XCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</XCode>
+					<YCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</YCode>
+					<ZCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ZCode>
+					<ColumnCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</ColumnCode>
+					<RowCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</RowCode>
+					<LatitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LatitudeCode>
+					<LongitudeCode Class="CodeValue">
+						<Code><![CDATA[0]]></Code>
+					</LongitudeCode>
+					<LocationNameCode Class="CodeValue">
+						<Code><![CDATA[""]]></Code>
+					</LocationNameCode>
+					<InitializationType>SPECIFIED_NUMBER</InitializationType>
+					<InitializationDatabaseTableQuery>
+						<TableReference>
+						</TableReference>
+					</InitializationDatabaseTableQuery>
+					<InitializationDatabaseType>ONE_AGENT_PER_DATABASE_RECORD</InitializationDatabaseType>
+					<QuantityColumn>
+					</QuantityColumn>
 				</EmbeddedObject>
 			</EmbeddedObjects>
 
@@ -557,7 +742,7 @@ demandPlot.refresh();
 			<Presentation>
 				<GISPoint>
 					<Id>1723222523382</Id>
-					<Name><![CDATA[Kirkwall]]></Name>
+					<Name><![CDATA[KirkwallGISPoint]]></Name>
 					<X>0</X><Y>0</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -1093,6 +1278,25 @@ demandPlot.refresh();
 					<Id>1723229601016</Id>
 					<Name><![CDATA[postCodes_presentation]]></Name>
 					<X>-50</X><Y>80</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<DrawingMode>AGENT_CURRENT_POSITION</DrawingMode>
+					<ScaleType>AUTOMATICALLY_CALCULATED</ScaleType>
+					<GISScaleForRealEmbeddedObjectPresentationSize>1000</GISScaleForRealEmbeddedObjectPresentationSize>
+					<GISScaleForFixedEmbeddedObjectPresentationSize>1000000000</GISScaleForFixedEmbeddedObjectPresentationSize>
+					<Latitude>59.01827133488628</Latitude>
+					<Longitude>-3.0557537689149714</Longitude>
+				</EmbeddedObjectPresentation>
+				<EmbeddedObjectPresentation>
+					<Id>1723833133914</Id>
+					<Name><![CDATA[centralKirkwall_presentation]]></Name>
+					<X>-50</X><Y>110</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
