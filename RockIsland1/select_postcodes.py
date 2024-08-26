@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
 
+# Usage:
+# $ python3 select_postcodes.py
+#
+# Input configurations:
+#   num_sel: Number of postal codes to randomly select
+#
+# Once output csv is generated, open it in a spreadsheet application and export
+#   it as .xlsx file for AnyLogic.
+
 import csv
 import random
 
@@ -7,7 +16,10 @@ pc_path = 'inputs/OrkneyPostcodes.csv'
 sel_path = 'inputs/OrkneyPostcodesRandomlySelected.csv'
 
 num_pcs = 0
-num_sel = 50
+
+# Input parameter:
+# Number of postal codes to randomly select
+num_sel = 100
 
 fieldnames = []
 

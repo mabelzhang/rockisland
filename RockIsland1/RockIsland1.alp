@@ -418,6 +418,13 @@ if (gismap == null)
 // Calculate distance from each post code to a fixed location
 for (int i = 0; i < postCodes.size(); ++i)
 {
+  // If post code is identical to destination, distance will be 0 and error
+  // will be thrown. Skip it
+  if (postCodes.get(i).postcode.equals(centralKirkwall.postcode))
+  {
+    continue;
+  }
+
   // distanceByRoute() returns meters
   distToKirkwall = 0.001 * postCodes.get(i).distanceByRoute(centralKirkwall);
 
@@ -2235,7 +2242,7 @@ distanceCalculated = true;
 				</TableReference>
 				<ConnectionIndex>0</ConnectionIndex>
 				<ExternalTableName><![CDATA["OrkneyPostcodesRandomlySelected"]]></ExternalTableName>
-				<AutoImport>false</AutoImport>
+				<AutoImport>true</AutoImport>
 			</TableImportSettings>
 		</ImportSettings>
 		<ExportSettings>

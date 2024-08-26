@@ -6,12 +6,10 @@
   Would need third party library to write to Excel file from Python.
   Currently, the csv file is manually converted to .xlsx format, so that
   AnyLogic can import it to a population agent.
+  That is not sustainable for an automatic software pipeline that changes
+  the randomly selected list of postcodes on demand, as it needs to be changed
+  outside AnyLogic.
 
-- AnyLogic Database does not automatically refresh when the postcodes input
-  .xlsx file is changed.
-  User needs to click on Database > New > Database table, to reload the same
-  file, in order for it to update. That is not sustainable for changing the
-  randomly selected list of postcodes outside AnyLogic.
   Unclear if it is possible to randomly select a list from the database table
   of 800+ postcodes, inside AnyLogic, and then populate the agent using the
   selected list.
@@ -19,6 +17,10 @@
   the agent setup programmatically. Perhaps you can through these
   [functions](https://anylogic.help/anylogic/gis/agents-placement.html#agent-location-api).
 
+- For AnyLogic Database to automatically refresh when the postcodes input
+  .xlsx file is changed, make sure in
+  Database > orkney\_postcodes\_randomly\_selected, check "Update data on
+  the model startup".
 
 # Sources
 
