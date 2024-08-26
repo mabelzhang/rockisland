@@ -426,7 +426,15 @@ for (int i = 0; i < postCodes.size(); ++i)
   }
 
   // distanceByRoute() returns meters
-  distToKirkwall = 0.001 * postCodes.get(i).distanceByRoute(centralKirkwall);
+  try
+  {
+    distToKirkwall = 0.001 * postCodes.get(i).distanceByRoute(centralKirkwall);
+  }
+  catch (java.lang.RuntimeException e)
+  {
+    // Skip the post code if a route cannot be found
+    continue;
+  }
 
   // MJ/passenger = km * MJ/passenger-km
   energyConsumed = distToKirkwall * CAR_ENERGY_INTEN_PKM;
@@ -876,7 +884,7 @@ distanceCalculated = true;
 					<CustomTileURL>false</CustomTileURL>
 					<TileURL><![CDATA[https://a.tile.openstreetmap.org/[zoom]/[x]/[y].png]]></TileURL>				
 					<RouteProviderType>WEB_SERVICE</RouteProviderType>
-					<RouteNotFound>CREATE_STRAIGHT_LINE</RouteNotFound>
+					<RouteNotFound>SHOW_ERROR_DIALOG</RouteNotFound>
 					<OnlineRouteProvider>ANYLOGIC</OnlineRouteProvider>
 					<TransportType>CAR</TransportType>
 					<RoutingMethod>FASTEST</RoutingMethod>
