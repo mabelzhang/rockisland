@@ -72,6 +72,10 @@ final float L_IN_TONNE_GAS = 1000 / THOUSAND_L_GAS_IN_TONNES;
 final float GJ_ENERGY_PER_TON_GAS = 44.75f;
 // MegaJoules of energy in 1 Liter of gas
 final float MJ_ENERGY_PER_L_GAS = GJ_ENERGY_PER_TON_GAS * 1000 / L_IN_TONNE_GAS;
+
+// Distance less than which a trip is considered walked rather than driven
+// Unit: meters
+final float WALK_THRESH = 1500;
 ]]></AdditionalClassCode>
 			<Import><![CDATA[import com.anylogic.engine.analysis.DataItem;
 import com.anylogic.engine.analysis.DataSet;
@@ -79,6 +83,7 @@ import com.anylogic.engine.analysis.DataSet;
 //import com.anylogic.engine.AbstractShapeGISMap;
 import com.anylogic.engine.markup.GISRoute;
 //import com.anylogic.engine.LengthUnits;
+import com.anylogic.engine.gis.RouteProviderTransportType;
 
 import java.util.Random;]]></Import>
 			<StartupCode><![CDATA[// TODO read csv header
@@ -180,6 +185,28 @@ demand = 0.0;
 			</ScaleRuler>
 			<CurrentLevel>1721057739075</CurrentLevel>
 			<ConnectionsId>1721057739069</ConnectionsId>
+			<RouteProviders>
+				<RouteProvider>
+					<Id>1724867721694</Id>
+					<Name><![CDATA[walkRouteProvider]]></Name>
+					<X>-160</X><Y>60</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<RouteProviderType>WEB_SERVICE</RouteProviderType>
+					<RouteNotFound>SHOW_ERROR_DIALOG</RouteNotFound>
+					<OnlineRouteProvider>ANYLOGIC</OnlineRouteProvider>
+					<TransportType>FOOT</TransportType>
+					<RoutingMethod>FASTEST</RoutingMethod>
+					<PathfindingAlgorithm>DIJKSTRABI</PathfindingAlgorithm>
+					<CustomRouteProvider>false</CustomRouteProvider>
+					<RouteSourceResourceReference>
+					</RouteSourceResourceReference>
+					<RouteGraphResourceReference>
+					</RouteGraphResourceReference>
+				</RouteProvider>
+			</RouteProviders>
 			<Events>
 				<Event>
 					<Id>1721301835197</Id>
@@ -273,7 +300,14 @@ updateDemandPlot();]]></Action>
 						</RecurrenceCode>
 						<Condition><![CDATA[!distanceCalculated]]></Condition>
 					</Properties>
-					<Action><![CDATA[calcDistances();
+					<Action><![CDATA[RouteProviderTransportType[] transportType = RouteProviderTransportType.values();
+System.out.println("Transport type:");
+for (int i = 0; i < transportType.length; ++i)
+{
+  System.out.println(transportType[i]);
+}
+
+calcDistances();
 ]]></Action>
 				</Event>
 			</Events>
@@ -402,6 +436,7 @@ if (distanceCalculated)
 
 // km
 double distToKirkwall = 0.0;
+double walkDistToKirkwall = 0.0;
 // MegaJoules
 double energyConsumed = 0.0;
 // Liters
@@ -425,10 +460,10 @@ for (int i = 0; i < postCodes.size(); ++i)
     continue;
   }
 
-  // distanceByRoute() returns meters
   try
   {
-    distToKirkwall = 0.001 * postCodes.get(i).distanceByRoute(centralKirkwall);
+    // Unit: distanceByRoute() returns meters
+    distToKirkwall = postCodes.get(i).distanceByRoute(centralKirkwall);
   }
   catch (java.lang.RuntimeException e)
   {
@@ -436,32 +471,58 @@ for (int i = 0; i < postCodes.size(); ++i)
     continue;
   }
 
-  // MJ/passenger = km * MJ/passenger-km
-  energyConsumed = distToKirkwall * CAR_ENERGY_INTEN_PKM;
-  // L/passenger = MJ / (MJ/L)
-  fuelConsumed = energyConsumed / MJ_ENERGY_PER_L_GAS;
-
-  // For some reason directly accessing get(i).latitude (csv column name)
-  // always gets 0, but get(i).getLatitude() gives the correct value.
-  System.out.printf("Distance from %s (%g, %g) to Kirkwall: %.3g km, %.3g MJ energy, %.3g L fuel\n",
-    postCodes.get(i).postcode, postCodes.get(i).getLatitude(),
-    postCodes.get(i).getLongitude(), distToKirkwall, energyConsumed, fuelConsumed);
-
-  // Visualize route
-  if (gismap != null)
+  // If the distance can be walked, calculate the energy for walking route
+  if (distToKirkwall < WALK_THRESH)
   {
-    route = gismap.getRoute(
-      postCodes.get(i).getLatitude(),
-      postCodes.get(i).getLongitude(),
-      centralKirkwall.getLatitude(),
-      centralKirkwall.getLongitude());
+    // Get walking route distance. Unit: meters
+    walkDistToKirkwall = walkRouteProvider.getDistance(
+        postCodes.get(i).getLatitude(), postCodes.get(i).getLongitude(),
+        centralKirkwall.getLatitude(), centralKirkwall.getLongitude());
+
+    System.out.printf("Distance (walk) from %s (%g, %g) to Kirkwall: %.3g m\n",
+        postCodes.get(i).postcode, postCodes.get(i).getLatitude(),
+        postCodes.get(i).getLongitude(), walkDistToKirkwall);
+
+    // Visualize walking route
+    route = walkRouteProvider.getRoute(gismap,
+        postCodes.get(i).getLatitude(), postCodes.get(i).getLongitude(),
+        centralKirkwall.getLatitude(), centralKirkwall.getLongitude());
     route.setVisible(true);
+
+    energyConsumed = 0;
+    fuelConsumed = 0;
+  }
+  // Else treat the route as driven by car
+  else
+  {
+    // MJ/passenger = km * MJ/passenger-km
+    energyConsumed = distToKirkwall * CAR_ENERGY_INTEN_PKM;
+    // L/passenger = MJ / (MJ/L)
+    fuelConsumed = energyConsumed / MJ_ENERGY_PER_L_GAS;
+
+    // For some reason directly accessing get(i).latitude (csv column name)
+    // always gets 0, but get(i).getLatitude() gives the correct value.
+    System.out.printf("Distance (car) from %s (%g, %g) to Kirkwall: %.3g km, %.3g MJ energy, %.3g L fuel\n",
+        postCodes.get(i).postcode, postCodes.get(i).getLatitude(),
+        postCodes.get(i).getLongitude(), 0.001 * distToKirkwall, energyConsumed, fuelConsumed);
+
+    // Visualize route
+    if (gismap != null)
+    {
+      route = gismap.getRoute(
+        postCodes.get(i).getLatitude(), postCodes.get(i).getLongitude(),
+        centralKirkwall.getLatitude(), centralKirkwall.getLongitude());
+      route.setVisible(true);
+    }
+
+    // Populate Histogram Data
+    // TODO: Add a histogram data color for walk, all 0s
+    travelEnergyHistData.add(energyConsumed);
+    travelFuelHistData.add(fuelConsumed);
   }
 
   // Populate Histogram Data
   travelDistHistData.add(distToKirkwall);
-  travelEnergyHistData.add(energyConsumed);
-  travelFuelHistData.add(fuelConsumed);
 }
 
 distanceCalculated = true;
