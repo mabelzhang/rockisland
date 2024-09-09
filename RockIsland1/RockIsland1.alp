@@ -495,8 +495,12 @@ for (int i = 0; i < postCodes.size(); ++i)
     fuelConsumed = 0;
 
     // Populate Histogram Data
-    // TODO: the 2nd and 3rd bars are different widths from car.
-    // Can they be set dynamically to take the same widths as the car hists?
+    // TODO: the 2nd and 3rd bars are different widths from car. There doesn't
+    // seem to be any API exposed to set bin widths. getIntervalWidth() gets
+    // car bars' bin width, but I can't then set it in the walk bars.
+    // The current workaround is to manually set HistogramData > Properties >
+    // Value range > Automatically detected, with Initial Interval Size set
+    // manually to the bin width that makes the bars the same width as the cars
     walkDistHistData.add(walkDistToKirkwall);
     walkEnergyHistData.add(energyConsumed);
     walkFuelHistData.add(fuelConsumed);
@@ -533,6 +537,15 @@ for (int i = 0; i < postCodes.size(); ++i)
 }
 
 
+// Use the width of the car bars, for the walk bars
+//double carDistBinWidth = carDistHistData.getIntervalWidth();
+
+//double carDistXMin = carDistHistData.getXMin();
+//double carDistXMax = carDistHistData.getXMax();
+// NOTE: In order to have setMinMax() function, you must set the HistogramData
+// to have Values Range FIXED, not automatic.
+// setMinMax() also doesn't do it on the fly, it WIPES the histogram first.
+//walkDistHistData.setMinMax(carDistXMin, carDistXMax);
 
 distanceCalculated = true;
 ]]></Body>
@@ -660,7 +673,7 @@ distanceCalculated = true;
 					<MinMaxAutodetect>true</MinMaxAutodetect>
 					<RangeMinExpression><![CDATA[0]]></RangeMinExpression>
 					<RangeMaxExpression><![CDATA[1]]></RangeMaxExpression>
-					<InitialIntervalSize><![CDATA[1]]></InitialIntervalSize>
+					<InitialIntervalSize><![CDATA[5]]></InitialIntervalSize>
 					<CalculateCDF>true</CalculateCDF>
 					<CalculatePercentiles>false</CalculatePercentiles>
 					<LowPercent>10</LowPercent>
@@ -691,7 +704,7 @@ distanceCalculated = true;
 					<MinMaxAutodetect>true</MinMaxAutodetect>
 					<RangeMinExpression><![CDATA[0]]></RangeMinExpression>
 					<RangeMaxExpression><![CDATA[1]]></RangeMaxExpression>
-					<InitialIntervalSize><![CDATA[1]]></InitialIntervalSize>
+					<InitialIntervalSize><![CDATA[10]]></InitialIntervalSize>
 					<CalculateCDF>true</CalculateCDF>
 					<CalculatePercentiles>false</CalculatePercentiles>
 					<LowPercent>10</LowPercent>
@@ -722,7 +735,7 @@ distanceCalculated = true;
 					<MinMaxAutodetect>true</MinMaxAutodetect>
 					<RangeMinExpression><![CDATA[0]]></RangeMinExpression>
 					<RangeMaxExpression><![CDATA[1]]></RangeMaxExpression>
-					<InitialIntervalSize><![CDATA[.1]]></InitialIntervalSize>
+					<InitialIntervalSize><![CDATA[.25]]></InitialIntervalSize>
 					<CalculateCDF>true</CalculateCDF>
 					<CalculatePercentiles>false</CalculatePercentiles>
 					<LowPercent>10</LowPercent>
@@ -1803,7 +1816,7 @@ distanceCalculated = true;
 					<HistogramDataExpression>
 					<Id>1724689223297</Id>
 					<Expression><![CDATA[carDistHistData]]></Expression>
-						<ColorPDF>-9807155</ColorPDF>
+						<ColorPDF>-1268098355</ColorPDF>
 						<ColorCDF>-2448096</ColorCDF>
 						<ColorLowPercent>-4343957</ColorLowPercent>
 						<ColorHighPercent>-3137392</ColorHighPercent>
@@ -1814,7 +1827,7 @@ distanceCalculated = true;
 					<HistogramDataExpression>
 					<Id>1725382831620</Id>
 					<Expression><![CDATA[walkDistHistData]]></Expression>
-						<ColorPDF>-13447886</ColorPDF>
+						<ColorPDF>-1271739086</ColorPDF>
 						<ColorCDF>-9728477</ColorCDF>
 						<ColorLowPercent>-12004916</ColorLowPercent>
 						<ColorHighPercent>-32944</ColorHighPercent>
@@ -1899,7 +1912,7 @@ distanceCalculated = true;
 					<HistogramDataExpression>
 					<Id>1724693441366</Id>
 					<Expression><![CDATA[carEnergyHistData]]></Expression>
-						<ColorPDF>-9807155</ColorPDF>
+						<ColorPDF>-1268098355</ColorPDF>
 						<ColorCDF>-12799119</ColorCDF>
 						<ColorLowPercent>-6632142</ColorLowPercent>
 						<ColorHighPercent>-10496</ColorHighPercent>
@@ -1910,7 +1923,7 @@ distanceCalculated = true;
 					<HistogramDataExpression>
 					<Id>1725383137860</Id>
 					<Expression><![CDATA[walkEnergyHistData]]></Expression>
-						<ColorPDF>-13447886</ColorPDF>
+						<ColorPDF>-1271739086</ColorPDF>
 						<ColorCDF>-9807155</ColorCDF>
 						<ColorLowPercent>-14774017</ColorLowPercent>
 						<ColorHighPercent>-6632142</ColorHighPercent>
@@ -1995,7 +2008,7 @@ distanceCalculated = true;
 					<HistogramDataExpression>
 					<Id>1724693551756</Id>
 					<Expression><![CDATA[carFuelHistData]]></Expression>
-						<ColorPDF>-9807155</ColorPDF>
+						<ColorPDF>-1268098355</ColorPDF>
 						<ColorCDF>-4343957</ColorCDF>
 						<ColorLowPercent>-23296</ColorLowPercent>
 						<ColorHighPercent>-23296</ColorHighPercent>
@@ -2006,7 +2019,7 @@ distanceCalculated = true;
 					<HistogramDataExpression>
 					<Id>1725383166017</Id>
 					<Expression><![CDATA[walkFuelHistData]]></Expression>
-						<ColorPDF>-13447886</ColorPDF>
+						<ColorPDF>-1271739086</ColorPDF>
 						<ColorCDF>-12004916</ColorCDF>
 						<ColorLowPercent>-4343957</ColorLowPercent>
 						<ColorHighPercent>-4343957</ColorHighPercent>
