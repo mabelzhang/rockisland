@@ -42,18 +42,33 @@ Random rand = new Random();
 
 // Energy capacity
 int coal, hydro, gas, diesel, wind, solar;
-double demand;
-
 int year;
-int simYear = 0;
+double demand = 0.0;
+
+int initYear = 0;
+int currYear = 0;
+// This is for transport, not for CSV.
+// Number of years to interpolate init and final param values in config panel
+final int DURATION_YEARS = 100;
 
 // Does not include header row. Used to index time stack chart
 int rowI = -1;
 
 // Travel distances
-boolean distanceCalculated = false;
+boolean transportInited = false;
+boolean transportVisualized = false;
 double meanVehicleDist = 0.0;
 double meanActiveDist = 0.0;
+double currActiveThresh = 0.0;
+
+// Keep track of distances so only need to calculate once
+// Dynamic list, because some post codes will be skipped (on island that
+// requires ferry, same post code as starting point, etc.)
+//List<double> distsToKirkwall = new List<double>();
+// TODO List, ArrayList don't work after import. 60 syntax errors everywhere
+// in compiled code in Main.java, impossible to debug in AnyLogic. So using
+// vanilla double[] for now, manually skipping invalid entries.
+double[] distsToKirkwall;
 
 // Calculations from J Boulton for energy consumed by distance traveled
 // Average occupancy in car in Germany
@@ -90,14 +105,16 @@ import com.anylogic.engine.markup.GISRoute;
 //import com.anylogic.engine.LengthUnits;
 import com.anylogic.engine.gis.RouteProviderTransportType;
 
-import java.util.ArrayList;
+//import java.util.List;
 import java.util.Random;]]></Import>
 			<StartupCode><![CDATA[// TODO read csv header
 String header = capacityCsv.readLine();
 System.out.println(header);
 
+initYear = 1900 + date().getYear();
+System.out.println(initYear);
+
 year = coal = hydro = gas = diesel = wind = solar = 0;
-demand = 0.0;
 ]]></StartupCode>
 			<DestroyCode><![CDATA[capacityCsv.close();]]></DestroyCode>
 			<Generic>false</Generic>
@@ -1020,71 +1037,8 @@ demand = 0.0;
 			</Dependences>
 			<Events>
 				<Event>
-					<Id>1721301835197</Id>
-					<Name><![CDATA[readCsvLine]]></Name>
-					<X>-160</X><Y>710</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties TriggerType="rate" Mode="occuresOnce">
-						<Timeout Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
-						</Timeout>
-						<Rate Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
-							<Unit Class="RateUnits"><![CDATA[PER_YEAR]]></Unit>
-						</Rate>
-						<OccurrenceAtTime>true</OccurrenceAtTime>
-						<OccurrenceDate>1721289600000</OccurrenceDate>
-						<OccurrenceTime Class="CodeUnitValue">
-							<Code><![CDATA[0]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
-						</OccurrenceTime>
-						<RecurrenceCode Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
-						</RecurrenceCode>
-						<Condition><![CDATA[false]]></Condition>
-					</Properties>
-					<Action><![CDATA[// Update to current sim time
-simYear = date().getYear() + 1900;
-System.out.println(simYear);
-
-if (simYear > year && capacityCsv.canReadMore())
-{
-  year = capacityCsv.readInt();
-  coal = capacityCsv.readInt();
-  hydro = capacityCsv.readInt();
-  gas = capacityCsv.readInt();
-  diesel = capacityCsv.readInt();
-  wind = capacityCsv.readInt();
-  solar = capacityCsv.readInt();
-
-  demand = capacityCsv.readDouble();
-
-  rowI++;
-
-  //System.out.println(coal);
-}
-
-if (RAND_CAPACITY)
-{
-  // Generate a number within threshold percentage of actual energy value
-  wind += rand.nextInt() % (wind * WIND_RAND_PC);
-  solar += rand.nextInt() % (solar * SOLAR_RAND_PC);
-  demand += rand.nextInt() % (demand * DEMAND_RAND_PC);
-}
-
-// Update all the charts
-updateStacked();
-updateTimeStacked();
-updateDemandPlot();]]></Action>
-				</Event>
-				<Event>
 					<Id>1723833372872</Id>
-					<Name><![CDATA[updateTransport]]></Name>
+					<Name><![CDATA[initTransport]]></Name>
 					<X>-160</X><Y>90</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1109,16 +1063,99 @@ updateDemandPlot();]]></Action>
 							<Code><![CDATA[1]]></Code>
 							<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
 						</RecurrenceCode>
-						<Condition><![CDATA[!distanceCalculated]]></Condition>
+						<Condition><![CDATA[!transportInited]]></Condition>
 					</Properties>
-					<Action><![CDATA[RouteProviderTransportType[] transportType = RouteProviderTransportType.values();
+					<Action><![CDATA[// Only run once
+if (transportInited)
+{
+  return;
+}
+
+// Debug output: See transport types
+RouteProviderTransportType[] transportType = RouteProviderTransportType.values();
 System.out.println("Transport type:");
 for (int i = 0; i < transportType.length; ++i)
 {
   System.out.println(transportType[i]);
 }
 
-calcDistances();
+// km
+double distToKirkwall = 0.0;
+double walkDistToKirkwall = 0.0;
+
+distsToKirkwall = new double[postCodes.size()];
+
+// Calculate distance from each post code to a fixed location
+for (int i = 0; i < postCodes.size(); ++i)
+{
+  // If post code is identical to destination, distance will be 0 and error
+  // will be thrown. Skip it
+  if (postCodes.get(i).postcode.equals(centralKirkwall.postcode))
+  {
+    continue;
+  }
+
+  try
+  {
+    // Unit: distanceByRoute() returns meters
+    // Convert to km for energy and fuel calculations
+    distToKirkwall = 0.001 * postCodes.get(i).distanceByRoute(centralKirkwall);
+
+    // Save to array for future iters
+    //distsToKirkwall.add(distToKirkwall);
+    distsToKirkwall[i] = distToKirkwall;
+  }
+  catch (java.lang.RuntimeException e)
+  {
+    // Skip the post code if a route cannot be found
+    continue;
+  }
+}
+
+// Set flag to not run again
+transportInited = true;
+]]></Action>
+				</Event>
+				<Event>
+					<Id>1729705703975</Id>
+					<Name><![CDATA[preUpdate]]></Name>
+					<X>-160</X><Y>30</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Properties TriggerType="rate" Mode="occuresOnce">
+						<Timeout Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+						</Timeout>
+						<Rate Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="RateUnits"><![CDATA[PER_YEAR]]></Unit>
+						</Rate>
+						<OccurrenceAtTime>true</OccurrenceAtTime>
+						<OccurrenceDate>1729756800000</OccurrenceDate>
+						<OccurrenceTime Class="CodeUnitValue">
+							<Code><![CDATA[0]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+						</OccurrenceTime>
+						<RecurrenceCode Class="CodeUnitValue">
+							<Code><![CDATA[1]]></Code>
+							<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+						</RecurrenceCode>
+						<Condition><![CDATA[false]]></Condition>
+					</Properties>
+					<Action><![CDATA[// Update global variables
+
+// Update to current sim time. Starts at 1940
+currYear = date().getYear() + 1900;
+System.out.println(currYear);
+
+// Update charts
+readCsvLine();
+
+// Update transport
+updateTransport();
 ]]></Action>
 				</Event>
 			</Events>
@@ -1173,32 +1210,35 @@ capacityStacked.refresh();
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[int simYearRaw = simYear - 1940;
+					<Body><![CDATA[// initYear has to be 1939, because only Main() gets called at initial
+// iteration, events don't get called until the next iteration!
+// csv data starts at 1940. So subtract by 1939 + 1 to get 0.
+int currYearOffset = currYear - (initYear + 1);
 
 // get() returns DataSet. 1 DataSet per color
 if (capacityTimeStacked.get(STK_COAL_I) != null)
 {
-  capacityTimeStacked.get(STK_COAL_I).add(simYearRaw, coal);
+  capacityTimeStacked.get(STK_COAL_I).add(currYearOffset, coal);
 }
 if (capacityTimeStacked.get(STK_HYDRO_I) != null)
 {
-  capacityTimeStacked.get(STK_HYDRO_I).add(simYearRaw, hydro);
+  capacityTimeStacked.get(STK_HYDRO_I).add(currYearOffset, hydro);
 }
 if (capacityTimeStacked.get(STK_GAS_I) != null)
 {
-  capacityTimeStacked.get(STK_GAS_I).add(simYearRaw, gas);
+  capacityTimeStacked.get(STK_GAS_I).add(currYearOffset, gas);
 }
 if (capacityTimeStacked.get(STK_DIESEL_I) != null)
 {
-  capacityTimeStacked.get(STK_DIESEL_I).add(simYearRaw, diesel);
+  capacityTimeStacked.get(STK_DIESEL_I).add(currYearOffset, diesel);
 }
 if (capacityTimeStacked.get(STK_WIND_I) != null)
 {
-  capacityTimeStacked.get(STK_WIND_I).add(simYearRaw, wind);
+  capacityTimeStacked.get(STK_WIND_I).add(currYearOffset, wind);
 }
 if (capacityTimeStacked.get(STK_SOLAR_I) != null)
 {
-  capacityTimeStacked.get(STK_SOLAR_I).add(simYearRaw, solar);
+  capacityTimeStacked.get(STK_SOLAR_I).add(currYearOffset, solar);
 }
 
 capacityTimeStacked.refresh();
@@ -1218,12 +1258,12 @@ capacityTimeStacked.refresh();
 if (demandPlot.get(LINE_CAPACITY_I) != null)
 {
   // Total capacity is the sum of all energy types
-  demandPlot.get(LINE_CAPACITY_I).add(simYear,
+  demandPlot.get(LINE_CAPACITY_I).add(currYear,
     coal + hydro + gas + diesel + wind + solar);
 }
 if (demandPlot.get(LINE_DEMAND_I) != null)
 {
-  demandPlot.get(LINE_DEMAND_I).add(simYear, demand);
+  demandPlot.get(LINE_DEMAND_I).add(currYear, demand);
 }
 
 demandPlot.refresh();
@@ -1233,17 +1273,24 @@ demandPlot.refresh();
 					<ReturnModificator>VOID</ReturnModificator>
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1723824937529</Id>
-					<Name><![CDATA[calcDistances]]></Name>
+					<Name><![CDATA[updateTransport]]></Name>
 					<X>-160</X><Y>180</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// Only calculate once
-if (distanceCalculated)
+					<Body><![CDATA[// Wait for initialization
+if (!transportInited)
 {
   return;
 }
+
+// Update every iteration
+// Interpolate between configured init and final param values, to get value
+// for current year
+currActiveThresh =
+  (sliderActiveFinal.getValue() - sliderActiveInit.getValue()) *
+  (currYear - initYear) / DURATION_YEARS;
 
 // km
 double distToKirkwall = 0.0;
@@ -1253,7 +1300,7 @@ double walkDistToKirkwall = 0.0;
 // Unit: km
 // TODO need to add time axis to update this every frame, interpolate to
 // sliderActiveFinal.getValue() by the total number of simulation years.
-double walkDistThresh = sliderActiveInit.getValue();  //1.5;
+//double walkDistThresh = currActiveThresh;  //1.5;
 
 // km. Stats
 double vehicleDistTtl = 0.0;
@@ -1275,30 +1322,23 @@ if (gismap == null)
   System.err.println("No ShapeGISMap found in agent");
 }
 
-// Calculate distance from each post code to a fixed location
-for (int i = 0; i < postCodes.size(); ++i)
-{
-  // If post code is identical to destination, distance will be 0 and error
-  // will be thrown. Skip it
-  if (postCodes.get(i).postcode.equals(centralKirkwall.postcode))
-  {
-    continue;
-  }
+// TODO wipe previous routes visualized. That would require storing all
+// previous routes, and redrawing every year... Too much rendering load,
+// won't do that for now.
 
-  try
+
+// Calculate distance from each post code to a fixed location
+for (int i = 0; i < distsToKirkwall.length; ++i)
+{
+  distToKirkwall = distsToKirkwall[i];
+  // Skip invalid ones
+  if (distToKirkwall == 0)
   {
-    // Unit: distanceByRoute() returns meters
-    // Convert to km for energy and fuel calculations
-    distToKirkwall = 0.001 * postCodes.get(i).distanceByRoute(centralKirkwall);
-  }
-  catch (java.lang.RuntimeException e)
-  {
-    // Skip the post code if a route cannot be found
     continue;
   }
 
   // If the distance can be walked, calculate the energy for walking route
-  if (distToKirkwall < walkDistThresh)
+  if (distToKirkwall < currActiveThresh)
   {
     // Get walking route distance
     // Unit returned by function: meters. Convert to km
@@ -1311,10 +1351,13 @@ for (int i = 0; i < postCodes.size(); ++i)
         postCodes.get(i).getLongitude(), 1000 * walkDistToKirkwall);
 
     // Visualize walking route
-    route = walkRouteProvider.getRoute(gismap,
-        postCodes.get(i).getLatitude(), postCodes.get(i).getLongitude(),
-        centralKirkwall.getLatitude(), centralKirkwall.getLongitude());
-    route.setVisible(true);
+    if (!transportVisualized)
+    {
+      route = walkRouteProvider.getRoute(gismap,
+          postCodes.get(i).getLatitude(), postCodes.get(i).getLongitude(),
+          centralKirkwall.getLatitude(), centralKirkwall.getLongitude());
+      route.setVisible(true);
+    }
 
     energyConsumed = 0;
     fuelConsumed = 0;
@@ -1350,7 +1393,7 @@ for (int i = 0; i < postCodes.size(); ++i)
         postCodes.get(i).getLongitude(), distToKirkwall, energyConsumed, fuelConsumed);
 
     // Visualize route
-    if (gismap != null)
+    if (!transportVisualized && gismap != null)
     {
       route = gismap.getRoute(
         postCodes.get(i).getLatitude(), postCodes.get(i).getLongitude(),
@@ -1383,8 +1426,51 @@ meanActiveDist = activeDistTtl / nValidActiveDists;
 // setMinMax() also doesn't do it on the fly, it WIPES the histogram first.
 //walkDistHistData.setMinMax(carDistXMin, carDistXMax);
 
-distanceCalculated = true;
+if (!transportVisualized)
+{
+  transportVisualized = true;
+}
 ]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1729705885615</Id>
+					<Name><![CDATA[readCsvLine]]></Name>
+					<X>-160</X><Y>710</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[if (currYear > year && capacityCsv.canReadMore())
+{
+  year = capacityCsv.readInt();
+  coal = capacityCsv.readInt();
+  hydro = capacityCsv.readInt();
+  gas = capacityCsv.readInt();
+  diesel = capacityCsv.readInt();
+  wind = capacityCsv.readInt();
+  solar = capacityCsv.readInt();
+
+  demand = capacityCsv.readDouble();
+
+  rowI++;
+
+  //System.out.println(coal);
+}
+
+if (RAND_CAPACITY)
+{
+  // Generate a number within threshold percentage of actual energy value
+  wind += rand.nextInt() % (wind * WIND_RAND_PC);
+  solar += rand.nextInt() % (solar * SOLAR_RAND_PC);
+  demand += rand.nextInt() % (demand * DEMAND_RAND_PC);
+}
+
+// Update all the charts
+updateStacked();
+updateTimeStacked();
+updateDemandPlot();]]></Body>
 				</Function>
 			</Functions>
 			<AnalysisData>
