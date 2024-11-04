@@ -74,17 +74,25 @@ double[] distsToKirkwall;
 // Average occupancy in car in Germany
 // Unit: passengers
 final float AVG_PPL_PER_CAR = 1.5f;
+
 // Unit: MegaJoules / vehicle-kilometer
-final float CAR_ENERGY_INTEN_VKM = 2.0f;
+// For oil cars, i.e. internal combustion engines (ICE)
+final float CAR_ENERGY_INTEN_OIL_VKM = 2.13f;
+// For battery electric vehicles (BEV)
+final float CAR_ENERGY_INTEN_EV_VKM = 0.6f;
+
 // Unit: MegaJoules / passenger-kilometer
-final float CAR_ENERGY_INTEN_PKM = CAR_ENERGY_INTEN_VKM / AVG_PPL_PER_CAR;
+final float CAR_ENERGY_INTEN_OIL_PKM = CAR_ENERGY_INTEN_OIL_VKM / AVG_PPL_PER_CAR;
+final float CAR_ENERGY_INTEN_EV_PKM = CAR_ENERGY_INTEN_EV_VKM / AVG_PPL_PER_CAR;
 
 // Shared vehicles
-// TODO ARBITRARY, replace with real data. Number For shared vechiles
-final float AVG_PPL_PER_BUS = 10.0f;
+// TODO ARBITRARY, replace with real data. Number For shared vehicles
+final float AVG_PPL_PER_BUS = 46.0f;
 // TODO also need real numbers for BUS_ENERGY_INTEN_VKM and BUS_ENERGY_INTEN_PKM
-final float BUS_ENERGY_INTEN_VKM = CAR_ENERGY_INTEN_VKM;
-final float BUS_ENERGY_INTEN_PKM = CAR_ENERGY_INTEN_PKM;
+final float BUS_ENERGY_INTEN_OIL_VKM = CAR_ENERGY_INTEN_OIL_VKM;
+final float BUS_ENERGY_INTEN_OIL_PKM = CAR_ENERGY_INTEN_OIL_PKM;
+final float BUS_ENERGY_INTEN_EV_VKM = CAR_ENERGY_INTEN_EV_VKM;
+final float BUS_ENERGY_INTEN_EV_PKM = CAR_ENERGY_INTEN_EV_PKM;
 
 // Calculations from J Boulton for fuel consumed by energy
 // 1000 L gasoline weighs 0.753 tonnes
@@ -234,7 +242,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 				<Variable Class="AuxVariable">
 					<Id>1728319255545</Id>
 					<Name><![CDATA[populationCount]]></Name>
-					<X>500</X><Y>1910</Y>
+					<X>500</X><Y>1930</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -249,7 +257,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 				<Variable Class="AuxVariable">
 					<Id>1728319294246</Id>
 					<Name><![CDATA[dActive]]></Name>
-					<X>500</X><Y>1990</Y>
+					<X>500</X><Y>2010</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -264,7 +272,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 				<Variable Class="AuxVariable">
 					<Id>1728319321067</Id>
 					<Name><![CDATA[dSingleOil]]></Name>
-					<X>250</X><Y>1990</Y>
+					<X>250</X><Y>2010</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -279,7 +287,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 				<Variable Class="AuxVariable">
 					<Id>1728319346818</Id>
 					<Name><![CDATA[dSharedOil]]></Name>
-					<X>100</X><Y>1990</Y>
+					<X>100</X><Y>2010</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -294,7 +302,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 				<Variable Class="AuxVariable">
 					<Id>1728319411992</Id>
 					<Name><![CDATA[dSingleRenew]]></Name>
-					<X>720</X><Y>1990</Y>
+					<X>720</X><Y>2010</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -309,7 +317,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 				<Variable Class="AuxVariable">
 					<Id>1728319437189</Id>
 					<Name><![CDATA[dSharedRenew]]></Name>
-					<X>900</X><Y>1990</Y>
+					<X>900</X><Y>2010</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -324,7 +332,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 				<Variable Class="AuxVariable">
 					<Id>1728583784488</Id>
 					<Name><![CDATA[oilUnitPrice]]></Name>
-					<X>250</X><Y>2310</Y>
+					<X>250</X><Y>2330</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -340,7 +348,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<Id>1728589647007</Id>
 					<Name><![CDATA[dMean]]></Name>
 					<Description><![CDATA[km, average travel distance per person per year]]></Description>
-					<X>410</X><Y>1910</Y>
+					<X>410</X><Y>1930</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -355,7 +363,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 				<Variable Class="AuxVariable">
 					<Id>1728673744984</Id>
 					<Name><![CDATA[pcShared]]></Name>
-					<X>100</X><Y>1900</Y>
+					<X>100</X><Y>1920</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -370,7 +378,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 				<Variable Class="AuxVariable">
 					<Id>1728673901045</Id>
 					<Name><![CDATA[pcRenew]]></Name>
-					<X>740</X><Y>1900</Y>
+					<X>740</X><Y>1920</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -383,25 +391,9 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 
 				</Variable>
 				<Variable Class="StockVariable">
-					<Id>1728319458729</Id>
-					<Name><![CDATA[energyOilReserve]]></Name>
-					<X>100</X><Y>2070</Y>
-					<Label><X>0</X><Y>-20</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties Array="false">
-					<EquationStyle>classic</EquationStyle>
-					<Width>20</Width>
-					<Height>20</Height>
-						<InitialValue><![CDATA[0]]></InitialValue>
-						<Color/>
-					</Properties>
-				</Variable>
-				<Variable Class="StockVariable">
 					<Id>1728319478788</Id>
-					<Name><![CDATA[energyOilConsumedTtl]]></Name>
-					<X>410</X><Y>2070</Y>
+					<Name><![CDATA[energyICEConsumedTtl]]></Name>
+					<X>410</X><Y>2090</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -417,7 +409,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 				<Variable Class="StockVariable">
 					<Id>1728492867729</Id>
 					<Name><![CDATA[oilReserve]]></Name>
-					<X>100</X><Y>2150</Y>
+					<X>100</X><Y>2170</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -433,7 +425,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 				<Variable Class="StockVariable">
 					<Id>1728492881975</Id>
 					<Name><![CDATA[oilDrilled]]></Name>
-					<X>410</X><Y>2150</Y>
+					<X>410</X><Y>2170</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -449,7 +441,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 				<Variable Class="StockVariable">
 					<Id>1728493039850</Id>
 					<Name><![CDATA[oilSpendTotal]]></Name>
-					<X>100</X><Y>2230</Y>
+					<X>100</X><Y>2250</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -465,7 +457,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 				<Variable Class="StockVariable">
 					<Id>1728493081801</Id>
 					<Name><![CDATA[money]]></Name>
-					<X>500</X><Y>2230</Y>
+					<X>500</X><Y>2250</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -481,7 +473,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 				<Variable Class="StockVariable">
 					<Id>1728493138135</Id>
 					<Name><![CDATA[renewablesSpendTtl]]></Name>
-					<X>900</X><Y>2230</Y>
+					<X>900</X><Y>2250</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -496,8 +488,8 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 				</Variable>
 				<Variable Class="StockVariable">
 					<Id>1728583507950</Id>
-					<Name><![CDATA[energyRenewConsumedTtl]]></Name>
-					<X>900</X><Y>2070</Y>
+					<Name><![CDATA[energyBEVConsumedTtl]]></Name>
+					<X>900</X><Y>2090</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -513,7 +505,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 				<Variable Class="StockVariable">
 					<Id>1728583507957</Id>
 					<Name><![CDATA[renewablesGenerated]]></Name>
-					<X>900</X><Y>2150</Y>
+					<X>900</X><Y>2170</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -528,33 +520,33 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 				</Variable>
 				<Variable Class="Flow">
 					<Id>1728319495411</Id>
-					<Name><![CDATA[energyOilConsumed]]></Name>
-					<X>100</X><Y>2070</Y>
+					<Name><![CDATA[meanEnergyICEConsumed]]></Name>
+					<X>122</X><Y>2090</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Properties SourceId="1728319458729" TargetId="1728319478788" External="false" Constant="false" Array="false">
-						<Formula><![CDATA[dSingleOil * CAR_ENERGY_INTEN_PKM + dSharedOil * BUS_ENERGY_INTEN_PKM]]></Formula>
+					<Properties TargetId="1728319478788" External="false" Constant="false" Array="false">
+						<Formula><![CDATA[dSingleOil * CAR_ENERGY_INTEN_OIL_PKM + dSharedOil * BUS_ENERGY_INTEN_OIL_PKM]]></Formula>
 						<Color/>
 						<ValveIndex>1</ValveIndex>
 						<Points>
 							<Point><X>0</X><Y>0</Y></Point>
-							<Point><X>150</X><Y>0</Y></Point>
-							<Point><X>310</X><Y>0</Y></Point>
+							<Point><X>131</X><Y>0</Y></Point>
+							<Point><X>288</X><Y>0</Y></Point>
 						</Points>
 					</Properties>
 				</Variable>
 				<Variable Class="Flow">
 					<Id>1728492903009</Id>
-					<Name><![CDATA[oilConsumed]]></Name>
-					<X>100</X><Y>2150</Y>
+					<Name><![CDATA[meanOilConsumed]]></Name>
+					<X>100</X><Y>2170</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SourceId="1728492867729" TargetId="1728492881975" External="false" Constant="false" Array="false">
-						<Formula><![CDATA[energyOilConsumed / MJ_ENERGY_PER_L_GAS]]></Formula>
+						<Formula><![CDATA[(meanEnergyICEConsumed + meanEnergyBEVConsumed) / MJ_ENERGY_PER_L_GAS]]></Formula>
 						<Color/>
 						<ValveIndex>1</ValveIndex>
 						<Points>
@@ -566,14 +558,14 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 				</Variable>
 				<Variable Class="Flow">
 					<Id>1728493104825</Id>
-					<Name><![CDATA[oilCost]]></Name>
-					<X>500</X><Y>2230</Y>
+					<Name><![CDATA[meanOilCost]]></Name>
+					<X>500</X><Y>2250</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SourceId="1728493081801" TargetId="1728493039850" External="false" Constant="false" Array="false">
-						<Formula><![CDATA[oilUnitPrice * oilConsumed]]></Formula>
+						<Formula><![CDATA[oilUnitPrice * meanOilConsumed]]></Formula>
 						<Color/>
 						<ValveIndex>1</ValveIndex>
 						<Points>
@@ -585,14 +577,14 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 				</Variable>
 				<Variable Class="Flow">
 					<Id>1728493192131</Id>
-					<Name><![CDATA[renewablesCost]]></Name>
-					<X>500</X><Y>2230</Y>
+					<Name><![CDATA[electricCost]]></Name>
+					<X>500</X><Y>2250</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties SourceId="1728493081801" TargetId="1728493138135" External="false" Constant="false" Array="false">
-						<Formula><![CDATA[resourcesConsumed * 0  // TODO: Don't know how to price renewables yet]]></Formula>
+						<Formula><![CDATA[meanElectricConsumed * 0  // TODO: Don't know how to price renewables yet]]></Formula>
 						<Color/>
 						<ValveIndex>1</ValveIndex>
 						<Points>
@@ -604,15 +596,14 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 				</Variable>
 				<Variable Class="Flow">
 					<Id>1728583507938</Id>
-					<Name><![CDATA[energyRenewConsumed]]></Name>
-					<X>610</X><Y>2070</Y>
+					<Name><![CDATA[meanEnergyBEVConsumed]]></Name>
+					<X>610</X><Y>2090</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties TargetId="1728583507950" External="false" Constant="false" Array="false">
-						<Formula><![CDATA[0 * (dSingleRenew + dSharedRenew)
-// TODO get real numbers]]></Formula>
+						<Formula><![CDATA[dSingleRenew * CAR_ENERGY_INTEN_EV_PKM + dSharedRenew * BUS_ENERGY_INTEN_EV_PKM]]></Formula>
 						<Color/>
 						<ValveIndex>1</ValveIndex>
 						<Points>
@@ -624,14 +615,14 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 				</Variable>
 				<Variable Class="Flow">
 					<Id>1728583507942</Id>
-					<Name><![CDATA[resourcesConsumed]]></Name>
-					<X>610</X><Y>2150</Y>
+					<Name><![CDATA[meanElectricConsumed]]></Name>
+					<X>610</X><Y>2170</Y>
 					<Label><X>0</X><Y>-20</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties TargetId="1728583507957" External="false" Constant="false" Array="false">
-						<Formula><![CDATA[0 * energyRenewConsumed
+						<Formula><![CDATA[0 * meanEnergyBEVConsumed
 // TODO get real numbers]]></Formula>
 						<Color/>
 						<ValveIndex>1</ValveIndex>
@@ -647,10 +638,10 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 				<Link SourceId="1728319495411" TargetId="1728492903009" Polarity="null">
 					<Height>20.0</Height>
 					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>20</X><Y>80</Y></Direction>
+					<Direction><X>0</X><Y>80</Y></Direction>
 					<Id>1728493026658</Id>
-					<Name><![CDATA[energyOilConsumed - oilConsumed]]></Name>
-					<X>230</X><Y>2070</Y>
+					<Name><![CDATA[meanEnergyICEConsumed - meanOilConsumed]]></Name>
+					<X>250</X><Y>2090</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -664,8 +655,8 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<PolarityPosition>0.95</PolarityPosition>
 					<Direction><X>0</X><Y>80</Y></Direction>
 					<Id>1728583905190</Id>
-					<Name><![CDATA[oilConsumed - oilCost]]></Name>
-					<X>250</X><Y>2150</Y>
+					<Name><![CDATA[meanOilConsumed - meanOilCost]]></Name>
+					<X>250</X><Y>2170</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -679,8 +670,8 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<PolarityPosition>0.95</PolarityPosition>
 					<Direction><X>0</X><Y>80</Y></Direction>
 					<Id>1728583925378</Id>
-					<Name><![CDATA[energyRenewConsumed - resourcesConsumed]]></Name>
-					<X>720</X><Y>2070</Y>
+					<Name><![CDATA[meanEnergyBEVConsumed - meanElectricConsumed]]></Name>
+					<X>720</X><Y>2090</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -694,8 +685,8 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<PolarityPosition>0.95</PolarityPosition>
 					<Direction><X>0</X><Y>80</Y></Direction>
 					<Id>1728583931888</Id>
-					<Name><![CDATA[resourcesConsumed - renewablesCost]]></Name>
-					<X>720</X><Y>2150</Y>
+					<Name><![CDATA[meanElectricConsumed - electricCost]]></Name>
+					<X>720</X><Y>2170</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -709,8 +700,8 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<PolarityPosition>0.95</PolarityPosition>
 					<Direction><X>0</X><Y>-80</Y></Direction>
 					<Id>1728583948824</Id>
-					<Name><![CDATA[oilUnitPrice - oilCost]]></Name>
-					<X>250</X><Y>2310</Y>
+					<Name><![CDATA[oilUnitPrice - meanOilCost]]></Name>
+					<X>250</X><Y>2330</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -724,8 +715,8 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<PolarityPosition>0.95</PolarityPosition>
 					<Direction><X>0</X><Y>80</Y></Direction>
 					<Id>1728583964438</Id>
-					<Name><![CDATA[dSingleOil - energyOilConsumed]]></Name>
-					<X>250</X><Y>1990</Y>
+					<Name><![CDATA[dSingleOil - meanEnergyICEConsumed]]></Name>
+					<X>250</X><Y>2010</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -739,8 +730,8 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<PolarityPosition>0.95</PolarityPosition>
 					<Direction><X>0</X><Y>80</Y></Direction>
 					<Id>1728583975762</Id>
-					<Name><![CDATA[dSingleRenew - energyRenewConsumed]]></Name>
-					<X>720</X><Y>1990</Y>
+					<Name><![CDATA[dSingleRenew - meanEnergyBEVConsumed]]></Name>
+					<X>720</X><Y>2010</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -754,8 +745,8 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<PolarityPosition>0.95</PolarityPosition>
 					<Direction><X>150</X><Y>80</Y></Direction>
 					<Id>1728583984722</Id>
-					<Name><![CDATA[dSharedOil - energyOilConsumed]]></Name>
-					<X>100</X><Y>1990</Y>
+					<Name><![CDATA[dSharedOil - meanEnergyICEConsumed]]></Name>
+					<X>100</X><Y>2010</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -769,8 +760,8 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<PolarityPosition>0.95</PolarityPosition>
 					<Direction><X>-180</X><Y>80</Y></Direction>
 					<Id>1728583993531</Id>
-					<Name><![CDATA[dSharedRenew - energyRenewConsumed]]></Name>
-					<X>900</X><Y>1990</Y>
+					<Name><![CDATA[dSharedRenew - meanEnergyBEVConsumed]]></Name>
+					<X>900</X><Y>2010</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -785,7 +776,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<Direction><X>0</X><Y>80</Y></Direction>
 					<Id>1728584001242</Id>
 					<Name><![CDATA[populationCount - dActive]]></Name>
-					<X>500</X><Y>1910</Y>
+					<X>500</X><Y>1930</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -800,7 +791,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<Direction><X>-250</X><Y>80</Y></Direction>
 					<Id>1728584010381</Id>
 					<Name><![CDATA[populationCount - dSingleOil]]></Name>
-					<X>500</X><Y>1910</Y>
+					<X>500</X><Y>1930</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -815,7 +806,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<Direction><X>220</X><Y>80</Y></Direction>
 					<Id>1728584018128</Id>
 					<Name><![CDATA[populationCount - dSingleRenew]]></Name>
-					<X>500</X><Y>1910</Y>
+					<X>500</X><Y>1930</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -830,7 +821,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<Direction><X>150</X><Y>90</Y></Direction>
 					<Id>1728590012606</Id>
 					<Name><![CDATA[pcShared - dSingleOil]]></Name>
-					<X>100</X><Y>1900</Y>
+					<X>100</X><Y>1920</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -845,7 +836,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<Direction><X>0</X><Y>90</Y></Direction>
 					<Id>1728590023874</Id>
 					<Name><![CDATA[pcShared - dSharedOil]]></Name>
-					<X>100</X><Y>1900</Y>
+					<X>100</X><Y>1920</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -860,7 +851,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<Direction><X>800</X><Y>90</Y></Direction>
 					<Id>1728590055001</Id>
 					<Name><![CDATA[pcShared - dSharedRenew]]></Name>
-					<X>100</X><Y>1900</Y>
+					<X>100</X><Y>1920</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -875,7 +866,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<Direction><X>620</X><Y>90</Y></Direction>
 					<Id>1728590093013</Id>
 					<Name><![CDATA[pcShared - dSingleRenew]]></Name>
-					<X>100</X><Y>1900</Y>
+					<X>100</X><Y>1920</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -890,7 +881,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<Direction><X>-640</X><Y>90</Y></Direction>
 					<Id>1728590278165</Id>
 					<Name><![CDATA[pcRenew - dSharedOil]]></Name>
-					<X>740</X><Y>1900</Y>
+					<X>740</X><Y>1920</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -905,7 +896,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<Direction><X>-490</X><Y>90</Y></Direction>
 					<Id>1728590291061</Id>
 					<Name><![CDATA[pcRenew - dSingleOil]]></Name>
-					<X>740</X><Y>1900</Y>
+					<X>740</X><Y>1920</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -920,7 +911,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<Direction><X>-20</X><Y>90</Y></Direction>
 					<Id>1728590320750</Id>
 					<Name><![CDATA[pcRenew - dSingleRenew]]></Name>
-					<X>740</X><Y>1900</Y>
+					<X>740</X><Y>1920</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -935,7 +926,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<Direction><X>160</X><Y>90</Y></Direction>
 					<Id>1728590327077</Id>
 					<Name><![CDATA[pcRenew - dSharedRenew]]></Name>
-					<X>740</X><Y>1900</Y>
+					<X>740</X><Y>1920</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -950,7 +941,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<Direction><X>400</X><Y>80</Y></Direction>
 					<Id>1728590356738</Id>
 					<Name><![CDATA[populationCount - dSharedRenew]]></Name>
-					<X>500</X><Y>1910</Y>
+					<X>500</X><Y>1930</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -965,7 +956,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<Direction><X>-400</X><Y>80</Y></Direction>
 					<Id>1728590364410</Id>
 					<Name><![CDATA[populationCount - dSharedOil]]></Name>
-					<X>500</X><Y>1910</Y>
+					<X>500</X><Y>1930</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -980,7 +971,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<Direction><X>-310</X><Y>80</Y></Direction>
 					<Id>1728590385972</Id>
 					<Name><![CDATA[dMean - dSharedOil]]></Name>
-					<X>410</X><Y>1910</Y>
+					<X>410</X><Y>1930</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -995,7 +986,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<Direction><X>-160</X><Y>80</Y></Direction>
 					<Id>1728590401247</Id>
 					<Name><![CDATA[dMean - dSingleOil]]></Name>
-					<X>410</X><Y>1910</Y>
+					<X>410</X><Y>1930</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -1010,7 +1001,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<Direction><X>310</X><Y>80</Y></Direction>
 					<Id>1728590411141</Id>
 					<Name><![CDATA[dMean - dSingleRenew]]></Name>
-					<X>410</X><Y>1910</Y>
+					<X>410</X><Y>1930</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -1025,7 +1016,22 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<Direction><X>490</X><Y>80</Y></Direction>
 					<Id>1728590420022</Id>
 					<Name><![CDATA[dMean - dSharedRenew]]></Name>
-					<X>410</X><Y>1910</Y>
+					<X>410</X><Y>1930</Y>
+					<Label><X>40</X><Y>-50</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<Color/>
+					<LineWidth>1</LineWidth>
+					<Delay>false</Delay>
+				</Link>
+				<Link SourceId="1728583507938" TargetId="1728492903009" Polarity="null">
+					<Height>20.0</Height>
+					<PolarityPosition>0.95</PolarityPosition>
+					<Direction><X>-470</X><Y>80</Y></Direction>
+					<Id>1730754903684</Id>
+					<Name><![CDATA[meanEnergyBEVConsumed - meanOilConsumed]]></Name>
+					<X>720</X><Y>2090</Y>
 					<Label><X>40</X><Y>-50</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -1039,6 +1045,8 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 				<Event>
 					<Id>1723833372872</Id>
 					<Name><![CDATA[initTransport]]></Name>
+					<Description><![CDATA[Only run once per simulation. Calculate travel distances for each post code and store them in memory for later use.
+]]></Description>
 					<X>-160</X><Y>90</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1274,6 +1282,12 @@ demandPlot.refresh();
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1723824937529</Id>
 					<Name><![CDATA[updateTransport]]></Name>
+					<Description><![CDATA[Given the distances of postcodes and per-year parameterization (percentage of single-passenger vehicles, shared vehicles, and electrical vehicles):
+1. Calculate the mean distance across all postcodes, to populate system dynamics diagram for visualization. Energy and fuel are recalculated in the system dynamics diagram.
+2. Calculate energy and fuel of each type of transport for each post code, to visualize in histograms.
+
+TODO: Maybe the redundancy between histograms and system dynamics diagram is unnecessary, and should only calculate them in one place. Code is more maintainable if kept in a large block, rather than spaghetti across system dynamics flows. So maybe calculate the mean energy and fuel in this function too, store to class vars, and in the sys dyn flows just set them equal to class vars.
+]]></Description>
 					<X>-160</X><Y>180</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1309,10 +1323,10 @@ double activeDistTtl = 0.0;
 int nValidActiveDists = 0;
 
 // MegaJoules
-double energyConsumed = 0.0;
+double energyOilConsumed = 0.0, energyEVConsumed = 0.0;
 
 // Liters
-double fuelConsumed = 0.0;
+double oilConsumed = 0.0;
 
 // Only used for visualizing routes
 GISRoute route = null;
@@ -1359,8 +1373,8 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
       route.setVisible(true);
     }
 
-    energyConsumed = 0;
-    fuelConsumed = 0;
+    energyOilConsumed = 0;
+    oilConsumed = 0;
 
     // Populate Histogram Data
     // TODO: the 2nd and 3rd bars are different widths from car. There doesn't
@@ -1370,8 +1384,8 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
     // Value range > Automatically detected, with Initial Interval Size set
     // manually to the bin width that makes the bars the same width as the cars
     walkDistHistData.add(walkDistToKirkwall);
-    walkEnergyHistData.add(energyConsumed);
-    walkFuelHistData.add(fuelConsumed);
+    walkEnergyHistData.add(energyOilConsumed);
+    walkFuelHistData.add(oilConsumed);
 
     // Stats
     nValidActiveDists += 1;
@@ -1381,16 +1395,19 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
   else
   {
     // MJ/passenger = km * MJ/passenger-km
-    energyConsumed = distToKirkwall * CAR_ENERGY_INTEN_PKM;
+    energyOilConsumed = distToKirkwall * CAR_ENERGY_INTEN_OIL_PKM;
+    energyEVConsumed = distToKirkwall * CAR_ENERGY_INTEN_EV_PKM;
+
     // L/passenger = MJ / (MJ/L)
-    fuelConsumed = energyConsumed / MJ_ENERGY_PER_L_GAS;
+    oilConsumed = energyOilConsumed / MJ_ENERGY_PER_L_GAS;
 
     // Print car distance in km
     // NOTE: For some reason directly accessing get(i).latitude (csv column
     // name) always gets 0, but get(i).getLatitude() gives the correct value.
     System.out.printf("Distance (car) from %s (%f, %f) to Kirkwall: %.2f km, %.2f MJ energy, %.2f L fuel\n",
         postCodes.get(i).postcode, postCodes.get(i).getLatitude(),
-        postCodes.get(i).getLongitude(), distToKirkwall, energyConsumed, fuelConsumed);
+        postCodes.get(i).getLongitude(), distToKirkwall, energyOilConsumed,
+        oilConsumed);
 
     // Visualize route
     if (!transportVisualized && gismap != null)
@@ -1402,9 +1419,11 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
     }
 
     // Populate Histogram Data
-    carDistHistData.add(distToKirkwall);
-    carEnergyHistData.add(energyConsumed);
-    carFuelHistData.add(fuelConsumed);
+    carOilDistHistData.add(distToKirkwall);
+    carOilEnergyHistData.add(energyOilConsumed);
+    carOilHistData.add(oilConsumed);
+
+    // TODO add histogram color for EV
 
     // Stats
     nValidVehicleDists += 1;
@@ -1412,7 +1431,8 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
   }
 }
 
-// Get average distance across all postcodes
+// Get average distance across all postcodes, for system dynamics diagram
+// visualization
 meanVehicleDist = vehicleDistTtl / nValidVehicleDists;
 meanActiveDist = activeDistTtl / nValidActiveDists;
 
@@ -1476,7 +1496,7 @@ updateDemandPlot();]]></Body>
 			<AnalysisData>
     			<HistogramData>
 					<Id>1724689627945</Id>
-					<Name><![CDATA[carDistHistData]]></Name>
+					<Name><![CDATA[carOilDistHistData]]></Name>
 					<Description><![CDATA[Histogram of distance traveled
 ]]></Description>
 					<X>90</X><Y>1570</Y>
@@ -1509,7 +1529,7 @@ updateDemandPlot();]]></Body>
 				</HistogramData>
     			<HistogramData>
 					<Id>1724693295200</Id>
-					<Name><![CDATA[carEnergyHistData]]></Name>
+					<Name><![CDATA[carOilEnergyHistData]]></Name>
 					<X>410</X><Y>1570</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1540,7 +1560,7 @@ updateDemandPlot();]]></Body>
 				</HistogramData>
     			<HistogramData>
 					<Id>1724693323757</Id>
-					<Name><![CDATA[carFuelHistData]]></Name>
+					<Name><![CDATA[carOilHistData]]></Name>
 					<X>730</X><Y>1570</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -2737,7 +2757,7 @@ updateDemandPlot();]]></Body>
 					</Bars>
 					<HistogramDataExpression>
 					<Id>1724689223297</Id>
-					<Expression><![CDATA[carDistHistData]]></Expression>
+					<Expression><![CDATA[carOilDistHistData]]></Expression>
 						<ColorPDF>-1268098355</ColorPDF>
 						<ColorCDF>-2448096</ColorCDF>
 						<ColorLowPercent>-4343957</ColorLowPercent>
@@ -2833,7 +2853,7 @@ updateDemandPlot();]]></Body>
 					</Bars>
 					<HistogramDataExpression>
 					<Id>1724693441366</Id>
-					<Expression><![CDATA[carEnergyHistData]]></Expression>
+					<Expression><![CDATA[carOilEnergyHistData]]></Expression>
 						<ColorPDF>-1268098355</ColorPDF>
 						<ColorCDF>-12799119</ColorCDF>
 						<ColorLowPercent>-6632142</ColorLowPercent>
@@ -2929,7 +2949,7 @@ updateDemandPlot();]]></Body>
 					</Bars>
 					<HistogramDataExpression>
 					<Id>1724693551756</Id>
-					<Expression><![CDATA[carFuelHistData]]></Expression>
+					<Expression><![CDATA[carOilHistData]]></Expression>
 						<ColorPDF>-1268098355</ColorPDF>
 						<ColorCDF>-4343957</ColorCDF>
 						<ColorLowPercent>-23296</ColorLowPercent>
@@ -3808,7 +3828,7 @@ updateDemandPlot();]]></Body>
 						<Enabled>true</Enabled>
 					</BasicProperties>
 					<ExtendedProperties>
-						<DefaultValueCode><![CDATA[10]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[20]]></DefaultValueCode>
 						<Orientation>HORIZONTAL</Orientation>
 						<MinValue><![CDATA[0]]></MinValue>
 						<MaxValue><![CDATA[100]]></MaxValue>
@@ -3956,7 +3976,7 @@ updateDemandPlot();]]></Body>
 						<Enabled>true</Enabled>
 					</BasicProperties>
 					<ExtendedProperties>
-						<DefaultValueCode><![CDATA[80]]></DefaultValueCode>
+						<DefaultValueCode><![CDATA[100]]></DefaultValueCode>
 						<Orientation>HORIZONTAL</Orientation>
 						<MinValue><![CDATA[0]]></MinValue>
 						<MaxValue><![CDATA[100]]></MaxValue>
