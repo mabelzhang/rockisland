@@ -22,7 +22,8 @@
   Database > orkney\_postcodes\_randomly\_selected, check "Update data on
   the model startup".
 
-- 
+- Once the python script has been run and the .xlsx made from the .csv,
+  you need to manually point the AnyLogic model to the .xlsx file.
   Database -> Create or import a table... -> Import database table(s) -> 
   File: RockIsland1 - inputs/OrkneyPostCodesRandomlySelected.xlsx
   (select 'Update data on the model startup)
