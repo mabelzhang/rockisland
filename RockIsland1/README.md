@@ -22,6 +22,11 @@
   Database > orkney\_postcodes\_randomly\_selected, check "Update data on
   the model startup".
 
+- 
+  Database -> Create or import a table... -> Import database table(s) -> 
+  File: RockIsland1 - inputs/OrkneyPostCodesRandomlySelected.xlsx
+  (select 'Update data on the model startup)
+
 # Sources
 
 [1] List of postcodes in Orkney
