@@ -26,7 +26,7 @@
   you need to manually point the AnyLogic model to the .xlsx file.
   Database -> Create or import a table... -> Import database table(s) -> 
   File: RockIsland1 - inputs/OrkneyPostCodesRandomlySelected.xlsx
-  (select 'Update data on the model startup)
+  (select 'Update data on the model startup')
 
 # Sources
 
