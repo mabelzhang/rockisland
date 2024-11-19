@@ -59,7 +59,10 @@ boolean transportInited = false;
 boolean transportVisualized = false;
 double meanVehicleDist = 0.0;
 double meanActiveDist = 0.0;
+// Threshold distance (km), below which walking is assumed, in current year
 double currActiveThresh = 0.0;
+// Percentage of renewable vehicles in current year
+double currRenewPc = 0.0;
 
 // Keep track of distances so only need to calculate once
 // Dynamic list, because some post codes will be skipped (on island that
@@ -1299,22 +1302,35 @@ if (!transportInited)
   return;
 }
 
-// Update every iteration
-// Interpolate between configured init and final param values, to get value
-// for current year
+// Clear all histograms from previous iteration
+carOilDistHistData.reset();
+carEVDistHistData.reset();
+walkDistHistData.reset();
+
+carOilEnergyHistData.reset();
+carEVEnergyHistData.reset();
+walkEnergyHistData.reset();
+
+carOilFuelHistData.reset();
+carEVFuelHistData.reset();
+walkFuelHistData.reset();
+
+// Interpolate using user-configured values in the Config panel.
+// Distance less than which a trip is considered walked rather than driven
+// Unit: km
+// Update every simulation frame. Each year on time axis, interpolate between
+// configured init and final param values, to get value for current year.
 currActiveThresh =
   (sliderActiveFinal.getValue() - sliderActiveInit.getValue()) *
+  (currYear - initYear) / DURATION_YEARS;
+// Percentage of vehicles using renewable energy
+currRenewPc =
+  (sliderRenewFinal.getValue() - sliderRenewInit.getValue()) *
   (currYear - initYear) / DURATION_YEARS;
 
 // km
 double distToKirkwall = 0.0;
 double walkDistToKirkwall = 0.0;
-
-// Distance less than which a trip is considered walked rather than driven
-// Unit: km
-// TODO need to add time axis to update this every frame, interpolate to
-// sliderActiveFinal.getValue() by the total number of simulation years.
-//double walkDistThresh = currActiveThresh;  //1.5;
 
 // km. Stats
 double vehicleDistTtl = 0.0;
@@ -1326,7 +1342,7 @@ int nValidActiveDists = 0;
 double energyOilConsumed = 0.0, energyEVConsumed = 0.0;
 
 // Liters
-double oilConsumed = 0.0;
+double fuelOilConsumed = 0.0, fuelEVConsumed = 0.0;
 
 // Only used for visualizing routes
 GISRoute route = null;
@@ -1373,19 +1389,17 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
       route.setVisible(true);
     }
 
-    energyOilConsumed = 0;
-    oilConsumed = 0;
-
     // Populate Histogram Data
-    // TODO: the 2nd and 3rd bars are different widths from car. There doesn't
-    // seem to be any API exposed to set bin widths. getIntervalWidth() gets
-    // car bars' bin width, but I can't then set it in the walk bars.
-    // The current workaround is to manually set HistogramData > Properties >
-    // Value range > Automatically detected, with Initial Interval Size set
-    // manually to the bin width that makes the bars the same width as the cars
+    // TODO/NOTE: the 2nd and 3rd bars are different widths from car. There
+    // doesn't seem to be any API exposed to set bin widths. getIntervalWidth()
+    // gets car bars' bin width, but I can't then set it in the walk bars.
+    // The current workaround is to manually set HistogramData purple icon >
+    // Properties > Value range > Fixed, then manually set Min and Max to the
+    // max range, i.e. oil cars. This makes bars of all colors the same width
+    // as the oil cars.
     walkDistHistData.add(walkDistToKirkwall);
-    walkEnergyHistData.add(energyOilConsumed);
-    walkFuelHistData.add(oilConsumed);
+    walkEnergyHistData.add(0);
+    walkFuelHistData.add(0);
 
     // Stats
     nValidActiveDists += 1;
@@ -1394,20 +1408,45 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
   // Else treat the route as driven by car
   else
   {
-    // MJ/passenger = km * MJ/passenger-km
-    energyOilConsumed = distToKirkwall * CAR_ENERGY_INTEN_OIL_PKM;
-    energyEVConsumed = distToKirkwall * CAR_ENERGY_INTEN_EV_PKM;
-
-    // L/passenger = MJ / (MJ/L)
-    oilConsumed = energyOilConsumed / MJ_ENERGY_PER_L_GAS;
-
     // Print car distance in km
     // NOTE: For some reason directly accessing get(i).latitude (csv column
     // name) always gets 0, but get(i).getLatitude() gives the correct value.
-    System.out.printf("Distance (car) from %s (%f, %f) to Kirkwall: %.2f km, %.2f MJ energy, %.2f L fuel\n",
+    System.out.printf("Distance (car) from %s (%f, %f) to Kirkwall: %.2f km,",
         postCodes.get(i).postcode, postCodes.get(i).getLatitude(),
-        postCodes.get(i).getLongitude(), distToKirkwall, energyOilConsumed,
-        oilConsumed);
+        postCodes.get(i).getLongitude(), distToKirkwall);
+
+    // Generate random number in (0, 1). If < currRenewPc, count as EV. Else
+    // count as oil car.
+    if (Math.random() * 100 < currRenewPc)
+    {
+      // EV
+      energyEVConsumed = distToKirkwall * CAR_ENERGY_INTEN_EV_PKM;
+      fuelEVConsumed = energyEVConsumed / MJ_ENERGY_PER_L_GAS;
+
+      carEVDistHistData.add(distToKirkwall);
+      carEVEnergyHistData.add(energyEVConsumed);
+      carEVFuelHistData.add(fuelEVConsumed);
+
+      System.out.printf(" %.2f MJ energy, %.2f L fuel (EV)\n",
+          energyEVConsumed, fuelEVConsumed);
+    }
+    else
+    {
+      // Energy, MJ/passenger = km * MJ/passenger-km
+      energyOilConsumed = distToKirkwall * CAR_ENERGY_INTEN_OIL_PKM;
+
+      // Fuel, L/passenger = MJ / (MJ/L)
+      fuelOilConsumed = energyOilConsumed / MJ_ENERGY_PER_L_GAS;
+
+      // Populate Histogram Data
+      // Oil car
+      carOilDistHistData.add(distToKirkwall);
+      carOilEnergyHistData.add(energyOilConsumed);
+      carOilFuelHistData.add(fuelOilConsumed);
+
+      System.out.printf(" %.2f MJ energy, %.2f L fuel (ICE)\n",
+          energyOilConsumed, fuelOilConsumed);
+    }
 
     // Visualize route
     if (!transportVisualized && gismap != null)
@@ -1417,13 +1456,6 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
         centralKirkwall.getLatitude(), centralKirkwall.getLongitude());
       route.setVisible(true);
     }
-
-    // Populate Histogram Data
-    carOilDistHistData.add(distToKirkwall);
-    carOilEnergyHistData.add(energyOilConsumed);
-    carOilHistData.add(oilConsumed);
-
-    // TODO add histogram color for EV
 
     // Stats
     nValidVehicleDists += 1;
@@ -1499,101 +1531,6 @@ updateDemandPlot();]]></Body>
 					<Name><![CDATA[carOilDistHistData]]></Name>
 					<Description><![CDATA[Histogram of distance traveled
 ]]></Description>
-					<X>90</X><Y>1570</Y>
-					<Label><X>15</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<AutoUpdate>false</AutoUpdate>
-					<OccurrenceAtTime>true</OccurrenceAtTime>
-					<OccurrenceDate>1724745600000</OccurrenceDate>
-					<OccurrenceTime Class="CodeUnitValue">
-						<Code><![CDATA[0]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
-					</OccurrenceTime>
-					<RecurrenceCode Class="CodeUnitValue">
-						<Code><![CDATA[1]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
-					</RecurrenceCode>
-					<Value><![CDATA[]]></Value>
-					<NumberOfIntervals>10</NumberOfIntervals>
-					<MinMaxAutodetect>true</MinMaxAutodetect>
-					<RangeMinExpression><![CDATA[0]]></RangeMinExpression>
-					<RangeMaxExpression><![CDATA[1]]></RangeMaxExpression>
-					<InitialIntervalSize><![CDATA[1]]></InitialIntervalSize>
-					<CalculateCDF>true</CalculateCDF>
-					<CalculatePercentiles>false</CalculatePercentiles>
-					<LowPercent>10</LowPercent>
-					<HighPercent>10</HighPercent>
-					<Title><![CDATA[]]></Title>
-				</HistogramData>
-    			<HistogramData>
-					<Id>1724693295200</Id>
-					<Name><![CDATA[carOilEnergyHistData]]></Name>
-					<X>410</X><Y>1570</Y>
-					<Label><X>15</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<AutoUpdate>false</AutoUpdate>
-					<OccurrenceAtTime>true</OccurrenceAtTime>
-					<OccurrenceDate>1724745600000</OccurrenceDate>
-					<OccurrenceTime Class="CodeUnitValue">
-						<Code><![CDATA[0]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
-					</OccurrenceTime>
-					<RecurrenceCode Class="CodeUnitValue">
-						<Code><![CDATA[1]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
-					</RecurrenceCode>
-					<Value><![CDATA[]]></Value>
-					<NumberOfIntervals>10</NumberOfIntervals>
-					<MinMaxAutodetect>true</MinMaxAutodetect>
-					<RangeMinExpression><![CDATA[0]]></RangeMinExpression>
-					<RangeMaxExpression><![CDATA[1]]></RangeMaxExpression>
-					<InitialIntervalSize><![CDATA[1]]></InitialIntervalSize>
-					<CalculateCDF>true</CalculateCDF>
-					<CalculatePercentiles>false</CalculatePercentiles>
-					<LowPercent>10</LowPercent>
-					<HighPercent>10</HighPercent>
-					<Title><![CDATA[]]></Title>
-				</HistogramData>
-    			<HistogramData>
-					<Id>1724693323757</Id>
-					<Name><![CDATA[carOilHistData]]></Name>
-					<X>730</X><Y>1570</Y>
-					<Label><X>15</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<AutoUpdate>false</AutoUpdate>
-					<OccurrenceAtTime>true</OccurrenceAtTime>
-					<OccurrenceDate>1724745600000</OccurrenceDate>
-					<OccurrenceTime Class="CodeUnitValue">
-						<Code><![CDATA[0]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
-					</OccurrenceTime>
-					<RecurrenceCode Class="CodeUnitValue">
-						<Code><![CDATA[1]]></Code>
-						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
-					</RecurrenceCode>
-					<Value><![CDATA[]]></Value>
-					<NumberOfIntervals>10</NumberOfIntervals>
-					<MinMaxAutodetect>true</MinMaxAutodetect>
-					<RangeMinExpression><![CDATA[0]]></RangeMinExpression>
-					<RangeMaxExpression><![CDATA[1]]></RangeMaxExpression>
-					<InitialIntervalSize><![CDATA[.1]]></InitialIntervalSize>
-					<CalculateCDF>true</CalculateCDF>
-					<CalculatePercentiles>false</CalculatePercentiles>
-					<LowPercent>10</LowPercent>
-					<HighPercent>10</HighPercent>
-					<Title><![CDATA[]]></Title>
-				</HistogramData>
-    			<HistogramData>
-					<Id>1725382943189</Id>
-					<Name><![CDATA[walkDistHistData]]></Name>
-					<Description><![CDATA[Histogram of distance traveled
-]]></Description>
 					<X>90</X><Y>1590</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1611,11 +1548,11 @@ updateDemandPlot();]]></Body>
 						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
 					</RecurrenceCode>
 					<Value><![CDATA[]]></Value>
-					<NumberOfIntervals>1</NumberOfIntervals>
-					<MinMaxAutodetect>true</MinMaxAutodetect>
+					<NumberOfIntervals>10</NumberOfIntervals>
+					<MinMaxAutodetect>false</MinMaxAutodetect>
 					<RangeMinExpression><![CDATA[0]]></RangeMinExpression>
-					<RangeMaxExpression><![CDATA[1]]></RangeMaxExpression>
-					<InitialIntervalSize><![CDATA[5]]></InitialIntervalSize>
+					<RangeMaxExpression><![CDATA[50]]></RangeMaxExpression>
+					<InitialIntervalSize><![CDATA[1]]></InitialIntervalSize>
 					<CalculateCDF>true</CalculateCDF>
 					<CalculatePercentiles>false</CalculatePercentiles>
 					<LowPercent>10</LowPercent>
@@ -1623,8 +1560,8 @@ updateDemandPlot();]]></Body>
 					<Title><![CDATA[]]></Title>
 				</HistogramData>
     			<HistogramData>
-					<Id>1725383083997</Id>
-					<Name><![CDATA[walkEnergyHistData]]></Name>
+					<Id>1724693295200</Id>
+					<Name><![CDATA[carOilEnergyHistData]]></Name>
 					<X>410</X><Y>1590</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1642,11 +1579,11 @@ updateDemandPlot();]]></Body>
 						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
 					</RecurrenceCode>
 					<Value><![CDATA[]]></Value>
-					<NumberOfIntervals>1</NumberOfIntervals>
-					<MinMaxAutodetect>true</MinMaxAutodetect>
+					<NumberOfIntervals>10</NumberOfIntervals>
+					<MinMaxAutodetect>false</MinMaxAutodetect>
 					<RangeMinExpression><![CDATA[0]]></RangeMinExpression>
-					<RangeMaxExpression><![CDATA[1]]></RangeMaxExpression>
-					<InitialIntervalSize><![CDATA[10]]></InitialIntervalSize>
+					<RangeMaxExpression><![CDATA[80]]></RangeMaxExpression>
+					<InitialIntervalSize><![CDATA[1]]></InitialIntervalSize>
 					<CalculateCDF>true</CalculateCDF>
 					<CalculatePercentiles>false</CalculatePercentiles>
 					<LowPercent>10</LowPercent>
@@ -1654,8 +1591,8 @@ updateDemandPlot();]]></Body>
 					<Title><![CDATA[]]></Title>
 				</HistogramData>
     			<HistogramData>
-					<Id>1725383108243</Id>
-					<Name><![CDATA[walkFuelHistData]]></Name>
+					<Id>1724693323757</Id>
+					<Name><![CDATA[carOilFuelHistData]]></Name>
 					<X>730</X><Y>1590</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
@@ -1673,11 +1610,201 @@ updateDemandPlot();]]></Body>
 						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
 					</RecurrenceCode>
 					<Value><![CDATA[]]></Value>
-					<NumberOfIntervals>1</NumberOfIntervals>
-					<MinMaxAutodetect>true</MinMaxAutodetect>
+					<NumberOfIntervals>10</NumberOfIntervals>
+					<MinMaxAutodetect>false</MinMaxAutodetect>
 					<RangeMinExpression><![CDATA[0]]></RangeMinExpression>
-					<RangeMaxExpression><![CDATA[1]]></RangeMaxExpression>
+					<RangeMaxExpression><![CDATA[2]]></RangeMaxExpression>
+					<InitialIntervalSize><![CDATA[.1]]></InitialIntervalSize>
+					<CalculateCDF>true</CalculateCDF>
+					<CalculatePercentiles>false</CalculatePercentiles>
+					<LowPercent>10</LowPercent>
+					<HighPercent>10</HighPercent>
+					<Title><![CDATA[]]></Title>
+				</HistogramData>
+    			<HistogramData>
+					<Id>1725382943189</Id>
+					<Name><![CDATA[walkDistHistData]]></Name>
+					<Description><![CDATA[Histogram of distance traveled
+]]></Description>
+					<X>90</X><Y>1630</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<AutoUpdate>false</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1724745600000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+					</RecurrenceCode>
+					<Value><![CDATA[]]></Value>
+					<NumberOfIntervals>10</NumberOfIntervals>
+					<MinMaxAutodetect>false</MinMaxAutodetect>
+					<RangeMinExpression><![CDATA[0]]></RangeMinExpression>
+					<RangeMaxExpression><![CDATA[50]]></RangeMaxExpression>
+					<InitialIntervalSize><![CDATA[5]]></InitialIntervalSize>
+					<CalculateCDF>true</CalculateCDF>
+					<CalculatePercentiles>false</CalculatePercentiles>
+					<LowPercent>10</LowPercent>
+					<HighPercent>10</HighPercent>
+					<Title><![CDATA[]]></Title>
+				</HistogramData>
+    			<HistogramData>
+					<Id>1725383083997</Id>
+					<Name><![CDATA[walkEnergyHistData]]></Name>
+					<X>410</X><Y>1630</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<AutoUpdate>false</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1724745600000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+					</RecurrenceCode>
+					<Value><![CDATA[]]></Value>
+					<NumberOfIntervals>10</NumberOfIntervals>
+					<MinMaxAutodetect>false</MinMaxAutodetect>
+					<RangeMinExpression><![CDATA[0]]></RangeMinExpression>
+					<RangeMaxExpression><![CDATA[80]]></RangeMaxExpression>
+					<InitialIntervalSize><![CDATA[10]]></InitialIntervalSize>
+					<CalculateCDF>true</CalculateCDF>
+					<CalculatePercentiles>false</CalculatePercentiles>
+					<LowPercent>10</LowPercent>
+					<HighPercent>10</HighPercent>
+					<Title><![CDATA[]]></Title>
+				</HistogramData>
+    			<HistogramData>
+					<Id>1725383108243</Id>
+					<Name><![CDATA[walkFuelHistData]]></Name>
+					<X>730</X><Y>1630</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<AutoUpdate>false</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1724745600000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+					</RecurrenceCode>
+					<Value><![CDATA[]]></Value>
+					<NumberOfIntervals>10</NumberOfIntervals>
+					<MinMaxAutodetect>false</MinMaxAutodetect>
+					<RangeMinExpression><![CDATA[0]]></RangeMinExpression>
+					<RangeMaxExpression><![CDATA[2]]></RangeMaxExpression>
 					<InitialIntervalSize><![CDATA[.25]]></InitialIntervalSize>
+					<CalculateCDF>true</CalculateCDF>
+					<CalculatePercentiles>false</CalculatePercentiles>
+					<LowPercent>10</LowPercent>
+					<HighPercent>10</HighPercent>
+					<Title><![CDATA[]]></Title>
+				</HistogramData>
+    			<HistogramData>
+					<Id>1731358726088</Id>
+					<Name><![CDATA[carEVDistHistData]]></Name>
+					<Description><![CDATA[Histogram of distance traveled
+]]></Description>
+					<X>90</X><Y>1610</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<AutoUpdate>false</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1724745600000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+					</RecurrenceCode>
+					<Value><![CDATA[]]></Value>
+					<NumberOfIntervals>10</NumberOfIntervals>
+					<MinMaxAutodetect>false</MinMaxAutodetect>
+					<RangeMinExpression><![CDATA[0]]></RangeMinExpression>
+					<RangeMaxExpression><![CDATA[50]]></RangeMaxExpression>
+					<InitialIntervalSize><![CDATA[1]]></InitialIntervalSize>
+					<CalculateCDF>true</CalculateCDF>
+					<CalculatePercentiles>false</CalculatePercentiles>
+					<LowPercent>10</LowPercent>
+					<HighPercent>10</HighPercent>
+					<Title><![CDATA[]]></Title>
+				</HistogramData>
+    			<HistogramData>
+					<Id>1731358726112</Id>
+					<Name><![CDATA[carEVEnergyHistData]]></Name>
+					<X>410</X><Y>1610</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<AutoUpdate>false</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1724745600000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+					</RecurrenceCode>
+					<Value><![CDATA[]]></Value>
+					<NumberOfIntervals>10</NumberOfIntervals>
+					<MinMaxAutodetect>false</MinMaxAutodetect>
+					<RangeMinExpression><![CDATA[0]]></RangeMinExpression>
+					<RangeMaxExpression><![CDATA[80]]></RangeMaxExpression>
+					<InitialIntervalSize><![CDATA[5]]></InitialIntervalSize>
+					<CalculateCDF>true</CalculateCDF>
+					<CalculatePercentiles>false</CalculatePercentiles>
+					<LowPercent>10</LowPercent>
+					<HighPercent>10</HighPercent>
+					<Title><![CDATA[]]></Title>
+				</HistogramData>
+    			<HistogramData>
+					<Id>1731358726123</Id>
+					<Name><![CDATA[carEVFuelHistData]]></Name>
+					<X>730</X><Y>1610</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<AutoUpdate>false</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1724745600000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+					</RecurrenceCode>
+					<Value><![CDATA[]]></Value>
+					<NumberOfIntervals>10</NumberOfIntervals>
+					<MinMaxAutodetect>false</MinMaxAutodetect>
+					<RangeMinExpression><![CDATA[0]]></RangeMinExpression>
+					<RangeMaxExpression><![CDATA[2]]></RangeMaxExpression>
+					<InitialIntervalSize><![CDATA[.1]]></InitialIntervalSize>
 					<CalculateCDF>true</CalculateCDF>
 					<CalculatePercentiles>false</CalculatePercentiles>
 					<LowPercent>10</LowPercent>
@@ -2764,7 +2891,7 @@ updateDemandPlot();]]></Body>
 						<ColorHighPercent>-3137392</ColorHighPercent>
 						<ColorMean>-9728477</ColorMean>
 						<LineWidth>1</LineWidth>						
-						<Title><![CDATA[Car]]></Title>							
+						<Title><![CDATA[Car ICE]]></Title>							
 					</HistogramDataExpression>
 					<HistogramDataExpression>
 					<Id>1725382831620</Id>
@@ -2776,6 +2903,17 @@ updateDemandPlot();]]></Body>
 						<ColorMean>-16728065</ColorMean>
 						<LineWidth>1</LineWidth>						
 						<Title><![CDATA[Walk]]></Title>							
+					</HistogramDataExpression>
+					<HistogramDataExpression>
+					<Id>1730921177872</Id>
+					<Expression><![CDATA[carEVDistHistData]]></Expression>
+						<ColorPDF>-1258301696</ColorPDF>
+						<ColorCDF>-16728065</ColorCDF>
+						<ColorLowPercent>-8097537</ColorLowPercent>
+						<ColorHighPercent>-13447886</ColorHighPercent>
+						<ColorMean>-4565549</ColorMean>
+						<LineWidth>1</LineWidth>						
+						<Title><![CDATA[Car EV]]></Title>							
 					</HistogramDataExpression>
     			</Histogram>
 				<Text>
@@ -2860,7 +2998,7 @@ updateDemandPlot();]]></Body>
 						<ColorHighPercent>-10496</ColorHighPercent>
 						<ColorMean>-6632142</ColorMean>
 						<LineWidth>1</LineWidth>						
-						<Title><![CDATA[Car]]></Title>							
+						<Title><![CDATA[Car ICE]]></Title>							
 					</HistogramDataExpression>
 					<HistogramDataExpression>
 					<Id>1725383137860</Id>
@@ -2872,6 +3010,17 @@ updateDemandPlot();]]></Body>
 						<ColorMean>-14774017</ColorMean>
 						<LineWidth>1</LineWidth>						
 						<Title><![CDATA[Walk]]></Title>							
+					</HistogramDataExpression>
+					<HistogramDataExpression>
+					<Id>1730921250421</Id>
+					<Expression><![CDATA[carEVEnergyHistData]]></Expression>
+						<ColorPDF>-1258301696</ColorPDF>
+						<ColorCDF>-2987746</ColorCDF>
+						<ColorLowPercent>-3137392</ColorLowPercent>
+						<ColorHighPercent>-14774017</ColorHighPercent>
+						<ColorMean>-3137392</ColorMean>
+						<LineWidth>1</LineWidth>						
+						<Title><![CDATA[Car EV]]></Title>							
 					</HistogramDataExpression>
     			</Histogram>
 				<Text>
@@ -2949,14 +3098,14 @@ updateDemandPlot();]]></Body>
 					</Bars>
 					<HistogramDataExpression>
 					<Id>1724693551756</Id>
-					<Expression><![CDATA[carOilHistData]]></Expression>
+					<Expression><![CDATA[carOilFuelHistData]]></Expression>
 						<ColorPDF>-1268098355</ColorPDF>
 						<ColorCDF>-4343957</ColorCDF>
 						<ColorLowPercent>-23296</ColorLowPercent>
 						<ColorHighPercent>-23296</ColorHighPercent>
 						<ColorMean>-14774017</ColorMean>
 						<LineWidth>1</LineWidth>						
-						<Title><![CDATA[Car]]></Title>							
+						<Title><![CDATA[Car ICE]]></Title>							
 					</HistogramDataExpression>
 					<HistogramDataExpression>
 					<Id>1725383166017</Id>
@@ -2968,6 +3117,17 @@ updateDemandPlot();]]></Body>
 						<ColorMean>-3137392</ColorMean>
 						<LineWidth>1</LineWidth>						
 						<Title><![CDATA[Walk]]></Title>							
+					</HistogramDataExpression>
+					<HistogramDataExpression>
+					<Id>1730921265348</Id>
+					<Expression><![CDATA[carEVFuelHistData]]></Expression>
+						<ColorPDF>-1258301696</ColorPDF>
+						<ColorCDF>-8097537</ColorCDF>
+						<ColorLowPercent>-12004916</ColorLowPercent>
+						<ColorHighPercent>-12004916</ColorHighPercent>
+						<ColorMean>-32944</ColorMean>
+						<LineWidth>1</LineWidth>						
+						<Title><![CDATA[Car EV]]></Title>							
 					</HistogramDataExpression>
     			</Histogram>
 				<Text>
