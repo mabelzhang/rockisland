@@ -47,9 +47,11 @@ double demand = 0.0;
 
 int initYear = 0;
 int currYear = 0;
-// This is for transport, not for CSV.
+// Make sure this matches actual setting in Simulation: Main
+// TODO: Find API to get this from AnyLogic, instead of setting manually
+// This is for system dynamics diagram for transport, not for CSV.
 // Number of years to interpolate init and final param values in config panel
-final int DURATION_YEARS = 100;
+final int DURATION_YEARS = 161;
 
 // Does not include header row. Used to index time stack chart
 int rowI = -1;
@@ -63,6 +65,8 @@ double meanActiveDist = 0.0;
 double currActiveThresh = 0.0;
 // Percentage of renewable vehicles in current year
 double currRenewPc = 0.0;
+// Percentage of shared (multi-passenger) vehicles in current year
+double currSharedPc = 0.0;
 
 // Keep track of distances so only need to calculate once
 // Dynamic list, because some post codes will be skipped (on island that
@@ -372,7 +376,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties External="false" Constant="false" Array="false">
-						<Formula><![CDATA[sliderSharedInit.getValue() / 100.0]]></Formula>
+						<Formula><![CDATA[currSharedPc]]></Formula>
 						<Value><![CDATA[0]]></Value>
 						<Color/>
 					</Properties>
@@ -387,7 +391,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties External="false" Constant="false" Array="false">
-						<Formula><![CDATA[sliderRenewInit.getIntValue() / 100.0]]></Formula>
+						<Formula><![CDATA[currRenewPc]]></Formula>
 						<Value><![CDATA[0]]></Value>
 						<Color/>
 					</Properties>
@@ -1322,11 +1326,21 @@ walkFuelHistData.reset();
 // configured init and final param values, to get value for current year.
 currActiveThresh =
   (sliderActiveFinal.getValue() - sliderActiveInit.getValue()) *
-  (currYear - initYear) / DURATION_YEARS;
-// Percentage of vehicles using renewable energy
+  (currYear - initYear) / DURATION_YEARS +
+  sliderActiveInit.getValue();
+// Percentage of vehicles using renewable energy. Range: [0, 1]
+// Slider values are integers [0, 100]
 currRenewPc =
-  (sliderRenewFinal.getValue() - sliderRenewInit.getValue()) *
-  (currYear - initYear) / DURATION_YEARS;
+  (sliderRenewFinal.getValue() - sliderRenewInit.getValue()) / 100.0 *
+  (currYear - initYear) / DURATION_YEARS +
+  sliderRenewInit.getValue() / 100.0;
+currSharedPc =
+  (sliderSharedFinal.getValue() - sliderSharedInit.getValue()) / 100.0 *
+  (currYear - initYear) / DURATION_YEARS +
+  sliderSharedInit.getValue() / 100.0;
+System.out.printf("currActiveThresh %g km, currRenewPc %g, currSharedPc %g, currYear %d, initYear %d, DURATION_YEARS %d\n",
+  currActiveThresh, currRenewPc, currSharedPc,
+  currYear, initYear, DURATION_YEARS);
 
 // km
 double distToKirkwall = 0.0;
@@ -1376,9 +1390,9 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
         postCodes.get(i).getLatitude(), postCodes.get(i).getLongitude(),
         centralKirkwall.getLatitude(), centralKirkwall.getLongitude());
 
-    System.out.printf("Distance (walk) from %s (%f, %f) to Kirkwall: %.2f m\n",
-        postCodes.get(i).postcode, postCodes.get(i).getLatitude(),
-        postCodes.get(i).getLongitude(), 1000 * walkDistToKirkwall);
+    //System.out.printf("Distance (walk) from %s (%f, %f) to Kirkwall: %.2f m\n",
+    //    postCodes.get(i).postcode, postCodes.get(i).getLatitude(),
+    //    postCodes.get(i).getLongitude(), 1000 * walkDistToKirkwall);
 
     // Visualize walking route
     if (!transportVisualized)
@@ -1411,13 +1425,13 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
     // Print car distance in km
     // NOTE: For some reason directly accessing get(i).latitude (csv column
     // name) always gets 0, but get(i).getLatitude() gives the correct value.
-    System.out.printf("Distance (car) from %s (%f, %f) to Kirkwall: %.2f km,",
-        postCodes.get(i).postcode, postCodes.get(i).getLatitude(),
-        postCodes.get(i).getLongitude(), distToKirkwall);
+    //System.out.printf("Distance (car) from %s (%f, %f) to Kirkwall: %.2f km,",
+    //    postCodes.get(i).postcode, postCodes.get(i).getLatitude(),
+    //    postCodes.get(i).getLongitude(), distToKirkwall);
 
     // Generate random number in (0, 1). If < currRenewPc, count as EV. Else
     // count as oil car.
-    if (Math.random() * 100 < currRenewPc)
+    if (Math.random() < currRenewPc)
     {
       // EV
       energyEVConsumed = distToKirkwall * CAR_ENERGY_INTEN_EV_PKM;
@@ -1427,8 +1441,8 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
       carEVEnergyHistData.add(energyEVConsumed);
       carEVFuelHistData.add(fuelEVConsumed);
 
-      System.out.printf(" %.2f MJ energy, %.2f L fuel (EV)\n",
-          energyEVConsumed, fuelEVConsumed);
+      //System.out.printf(" %.2f MJ energy, %.2f L fuel (EV)\n",
+      //    energyEVConsumed, fuelEVConsumed);
     }
     else
     {
@@ -1444,8 +1458,8 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
       carOilEnergyHistData.add(energyOilConsumed);
       carOilFuelHistData.add(fuelOilConsumed);
 
-      System.out.printf(" %.2f MJ energy, %.2f L fuel (ICE)\n",
-          energyOilConsumed, fuelOilConsumed);
+      //System.out.printf(" %.2f MJ energy, %.2f L fuel (ICE)\n",
+      //    energyOilConsumed, fuelOilConsumed);
     }
 
     // Visualize route
@@ -4674,7 +4688,7 @@ updateDemandPlot();]]></Body>
 			<PresentationProperties>
 				<EnableZoomAndPanning>false</EnableZoomAndPanning>
 				<ExecutionMode><![CDATA[realTimeScaled]]></ExecutionMode>
-				<Title><![CDATA[RockIsland1]]></Title>	
+				<Title><![CDATA[Rock Island]]></Title>	
 				<EnableDeveloperPanel>true</EnableDeveloperPanel>
 				<ShowDeveloperPanelOnStart>true</ShowDeveloperPanelOnStart>
 				<RealTimeScale>10.0</RealTimeScale>
