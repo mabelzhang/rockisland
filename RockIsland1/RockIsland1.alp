@@ -81,25 +81,21 @@ double[] distsToKirkwall;
 // Average occupancy in car in Germany
 // Unit: passengers
 final float AVG_PPL_PER_CAR = 1.5f;
+// TODO ARBITRARY, replace with real data. Number For shared vehicles
+//final float AVG_PPL_PER_BUS = 46.0f;
 
 // Unit: MegaJoules / vehicle-kilometer
 // For oil cars, i.e. internal combustion engines (ICE)
 final float CAR_ENERGY_INTEN_OIL_VKM = 2.13f;
 // For battery electric vehicles (BEV)
 final float CAR_ENERGY_INTEN_EV_VKM = 0.6f;
+// For oil buses
+final float BUS_ENERGY_INTEN_OIL_VKM = 13.35f;
 
 // Unit: MegaJoules / passenger-kilometer
 final float CAR_ENERGY_INTEN_OIL_PKM = CAR_ENERGY_INTEN_OIL_VKM / AVG_PPL_PER_CAR;
 final float CAR_ENERGY_INTEN_EV_PKM = CAR_ENERGY_INTEN_EV_VKM / AVG_PPL_PER_CAR;
-
-// Shared vehicles
-// TODO ARBITRARY, replace with real data. Number For shared vehicles
-final float AVG_PPL_PER_BUS = 46.0f;
-// TODO also need real numbers for BUS_ENERGY_INTEN_VKM and BUS_ENERGY_INTEN_PKM
-final float BUS_ENERGY_INTEN_OIL_VKM = CAR_ENERGY_INTEN_OIL_VKM;
-final float BUS_ENERGY_INTEN_OIL_PKM = CAR_ENERGY_INTEN_OIL_PKM;
-final float BUS_ENERGY_INTEN_EV_VKM = CAR_ENERGY_INTEN_EV_VKM;
-final float BUS_ENERGY_INTEN_EV_PKM = CAR_ENERGY_INTEN_EV_PKM;
+final float BUS_ENERGY_INTEN_OIL_PKM = 0.5f;
 
 // Calculations from J Boulton for fuel consumed by energy
 // 1000 L gasoline weighs 0.753 tonnes
@@ -300,7 +296,9 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties External="false" Constant="false" Array="false">
-						<Formula><![CDATA[dMean * populationCount * pcShared * (1 - pcRenew)]]></Formula>
+						<Formula><![CDATA[dMean * populationCount * pcShared
+// TODO need electric bus data. For now won't have renewable buses
+// * (1 - pcRenew)]]></Formula>
 						<Value><![CDATA[0]]></Value>
 						<Color/>
 					</Properties>
@@ -330,7 +328,9 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties External="false" Constant="false" Array="false">
-						<Formula><![CDATA[dMean * populationCount * pcShared * pcRenew]]></Formula>
+						<Formula><![CDATA[0 * dMean * populationCount * pcShared * pcRenew
+// TODO need electric bus data. Setting to 0 now so doesn't mislead
+//dMean * populationCount * pcShared * pcRenew]]></Formula>
 						<Value><![CDATA[0]]></Value>
 						<Color/>
 					</Properties>
@@ -610,7 +610,9 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Properties TargetId="1728583507950" External="false" Constant="false" Array="false">
-						<Formula><![CDATA[dSingleRenew * CAR_ENERGY_INTEN_EV_PKM + dSharedRenew * BUS_ENERGY_INTEN_EV_PKM]]></Formula>
+						<Formula><![CDATA[dSingleRenew * CAR_ENERGY_INTEN_EV_PKM + dSharedRenew * 0
+// TODO need electric bus data. Setting to 0 now so doesn't mislead
+//+ dSharedRenew * BUS_ENERGY_INTEN_EV_PKM]]></Formula>
 						<Color/>
 						<ValveIndex>1</ValveIndex>
 						<Points>
@@ -881,21 +883,6 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<LineWidth>1</LineWidth>
 					<Delay>false</Delay>
 				</Link>
-				<Link SourceId="1728673901045" TargetId="1728319346818" Polarity="null">
-					<Height>20.0</Height>
-					<PolarityPosition>0.95</PolarityPosition>
-					<Direction><X>-621</X><Y>80</Y></Direction>
-					<Id>1728590278165</Id>
-					<Name><![CDATA[pcRenew - dSharedOil]]></Name>
-					<X>721</X><Y>1930</Y>
-					<Label><X>40</X><Y>-50</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>false</ShowLabel>
-					<Color/>
-					<LineWidth>1</LineWidth>
-					<Delay>false</Delay>
-				</Link>
 				<Link SourceId="1728673901045" TargetId="1728319321067" Polarity="null">
 					<Height>20.0</Height>
 					<PolarityPosition>0.95</PolarityPosition>
@@ -927,7 +914,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<Delay>false</Delay>
 				</Link>
 				<Link SourceId="1728673901045" TargetId="1728319437189" Polarity="null">
-					<Height>20.0</Height>
+					<Height>-12.678</Height>
 					<PolarityPosition>0.95</PolarityPosition>
 					<Direction><X>179</X><Y>80</Y></Direction>
 					<Id>1728590327077</Id>
@@ -1309,14 +1296,17 @@ if (!transportInited)
 carOilDistHistData.reset();
 carEVDistHistData.reset();
 walkDistHistData.reset();
+busDistHistData.reset();
 
 carOilEnergyHistData.reset();
 carEVEnergyHistData.reset();
 walkEnergyHistData.reset();
+busEnergyHistData.reset();
 
 carOilFuelHistData.reset();
 carEVFuelHistData.reset();
 walkFuelHistData.reset();
+busFuelHistData.reset();
 
 // Interpolate using user-configured values in the Config panel.
 // Distance less than which a trip is considered walked rather than driven
@@ -1333,6 +1323,8 @@ currRenewPc =
   (sliderRenewFinal.getValue() - sliderRenewInit.getValue()) / 100.0 *
   (currYear - initYear) / DURATION_YEARS +
   sliderRenewInit.getValue() / 100.0;
+// Percentage of shared (multi-passenger) vehicles. Range: [0, 1]
+// Slider values are integers [0, 100]
 currSharedPc =
   (sliderSharedFinal.getValue() - sliderSharedInit.getValue()) / 100.0 *
   (currYear - initYear) / DURATION_YEARS +
@@ -1352,10 +1344,10 @@ double activeDistTtl = 0.0;
 int nValidActiveDists = 0;
 
 // MegaJoules
-double energyOilConsumed = 0.0, energyEVConsumed = 0.0;
+double energyOilConsumed = 0.0, energyEVConsumed = 0.0, energyBusConsumed = 0.0;
 
 // Liters
-double fuelOilConsumed = 0.0, fuelEVConsumed = 0.0;
+double fuelOilConsumed = 0.0, fuelEVConsumed = 0.0, fuelBusConsumed = 0.0;
 
 // Only used for visualizing routes
 GISRoute route = null;
@@ -1418,7 +1410,7 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
     nValidActiveDists += 1;
     activeDistTtl += distToKirkwall;
   }
-  // Else treat the route as driven by car
+  // Else treat the route as driven by a vehicle
   else
   {
     // Print car distance in km
@@ -1428,37 +1420,52 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
     //    postCodes.get(i).postcode, postCodes.get(i).getLatitude(),
     //    postCodes.get(i).getLongitude(), distToKirkwall);
 
-    // Generate random number in (0, 1). If < currRenewPc, count as EV. Else
-    // count as oil car.
-    if (Math.random() < currRenewPc)
+    // Multi-passenger bus (assumes oil)
+    if (Math.random() < currSharedPc)
     {
-      // EV
-      energyEVConsumed = distToKirkwall * CAR_ENERGY_INTEN_EV_PKM;
-      fuelEVConsumed = energyEVConsumed / MJ_ENERGY_PER_L_GAS;
+      energyBusConsumed = distToKirkwall * BUS_ENERGY_INTEN_OIL_PKM;
+      fuelBusConsumed = energyBusConsumed / MJ_ENERGY_PER_L_GAS;
 
-      carEVDistHistData.add(distToKirkwall);
-      carEVEnergyHistData.add(energyEVConsumed);
-      carEVFuelHistData.add(fuelEVConsumed);
-
-      //System.out.printf(" %.2f MJ energy, %.2f L fuel (EV)\n",
-      //    energyEVConsumed, fuelEVConsumed);
+      // TODO create bus histogram entries
+      busDistHistData.add(distToKirkwall);
+      busEnergyHistData.add(energyBusConsumed);
+      busFuelHistData.add(fuelBusConsumed);
     }
+    // Single-passenger car
     else
     {
-      // Energy, MJ/passenger = km * MJ/passenger-km
-      energyOilConsumed = distToKirkwall * CAR_ENERGY_INTEN_OIL_PKM;
+      // Generate random number in (0, 1). If < currRenewPc, count as EV. Else
+      // count as oil car.
+      // EV
+      if (Math.random() < currRenewPc)
+      {
+        energyEVConsumed = distToKirkwall * CAR_ENERGY_INTEN_EV_PKM;
+        fuelEVConsumed = energyEVConsumed / MJ_ENERGY_PER_L_GAS;
 
-      // Fuel, L/passenger = MJ / (MJ/L)
-      fuelOilConsumed = energyOilConsumed / MJ_ENERGY_PER_L_GAS;
+        carEVDistHistData.add(distToKirkwall);
+        carEVEnergyHistData.add(energyEVConsumed);
+        carEVFuelHistData.add(fuelEVConsumed);
 
-      // Populate Histogram Data
+        //System.out.printf(" %.2f MJ energy, %.2f L fuel (EV)\n",
+        //    energyEVConsumed, fuelEVConsumed);
+      }
       // Oil car
-      carOilDistHistData.add(distToKirkwall);
-      carOilEnergyHistData.add(energyOilConsumed);
-      carOilFuelHistData.add(fuelOilConsumed);
+      else
+      {
+        // Energy, MJ/passenger = km * MJ/passenger-km
+        energyOilConsumed = distToKirkwall * CAR_ENERGY_INTEN_OIL_PKM;
 
-      //System.out.printf(" %.2f MJ energy, %.2f L fuel (ICE)\n",
-      //    energyOilConsumed, fuelOilConsumed);
+        // Fuel, L/passenger = MJ / (MJ/L)
+        fuelOilConsumed = energyOilConsumed / MJ_ENERGY_PER_L_GAS;
+
+        // Populate Histogram Data
+        carOilDistHistData.add(distToKirkwall);
+        carOilEnergyHistData.add(energyOilConsumed);
+        carOilFuelHistData.add(fuelOilConsumed);
+
+        //System.out.printf(" %.2f MJ energy, %.2f L fuel (ICE)\n",
+        //    energyOilConsumed, fuelOilConsumed);
+      }
     }
 
     // Visualize route
@@ -1639,7 +1646,7 @@ updateDemandPlot();]]></Body>
 					<Name><![CDATA[walkDistHistData]]></Name>
 					<Description><![CDATA[Histogram of distance traveled
 ]]></Description>
-					<X>90</X><Y>1630</Y>
+					<X>90</X><Y>1650</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -1670,7 +1677,7 @@ updateDemandPlot();]]></Body>
     			<HistogramData>
 					<Id>1725383083997</Id>
 					<Name><![CDATA[walkEnergyHistData]]></Name>
-					<X>410</X><Y>1630</Y>
+					<X>410</X><Y>1650</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -1701,7 +1708,7 @@ updateDemandPlot();]]></Body>
     			<HistogramData>
 					<Id>1725383108243</Id>
 					<Name><![CDATA[walkFuelHistData]]></Name>
-					<X>730</X><Y>1630</Y>
+					<X>730</X><Y>1650</Y>
 					<Label><X>15</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -1818,6 +1825,101 @@ updateDemandPlot();]]></Body>
 					<RangeMinExpression><![CDATA[0]]></RangeMinExpression>
 					<RangeMaxExpression><![CDATA[2]]></RangeMaxExpression>
 					<InitialIntervalSize><![CDATA[.1]]></InitialIntervalSize>
+					<CalculateCDF>true</CalculateCDF>
+					<CalculatePercentiles>false</CalculatePercentiles>
+					<LowPercent>10</LowPercent>
+					<HighPercent>10</HighPercent>
+					<Title><![CDATA[]]></Title>
+				</HistogramData>
+    			<HistogramData>
+					<Id>1732063953711</Id>
+					<Name><![CDATA[busDistHistData]]></Name>
+					<Description><![CDATA[Histogram of distance traveled
+]]></Description>
+					<X>90</X><Y>1630</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<AutoUpdate>false</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1724745600000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+					</RecurrenceCode>
+					<Value><![CDATA[]]></Value>
+					<NumberOfIntervals>10</NumberOfIntervals>
+					<MinMaxAutodetect>false</MinMaxAutodetect>
+					<RangeMinExpression><![CDATA[0]]></RangeMinExpression>
+					<RangeMaxExpression><![CDATA[50]]></RangeMaxExpression>
+					<InitialIntervalSize><![CDATA[5]]></InitialIntervalSize>
+					<CalculateCDF>true</CalculateCDF>
+					<CalculatePercentiles>false</CalculatePercentiles>
+					<LowPercent>10</LowPercent>
+					<HighPercent>10</HighPercent>
+					<Title><![CDATA[]]></Title>
+				</HistogramData>
+    			<HistogramData>
+					<Id>1732063953748</Id>
+					<Name><![CDATA[busEnergyHistData]]></Name>
+					<X>410</X><Y>1630</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<AutoUpdate>false</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1724745600000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+					</RecurrenceCode>
+					<Value><![CDATA[]]></Value>
+					<NumberOfIntervals>10</NumberOfIntervals>
+					<MinMaxAutodetect>false</MinMaxAutodetect>
+					<RangeMinExpression><![CDATA[0]]></RangeMinExpression>
+					<RangeMaxExpression><![CDATA[80]]></RangeMaxExpression>
+					<InitialIntervalSize><![CDATA[10]]></InitialIntervalSize>
+					<CalculateCDF>true</CalculateCDF>
+					<CalculatePercentiles>false</CalculatePercentiles>
+					<LowPercent>10</LowPercent>
+					<HighPercent>10</HighPercent>
+					<Title><![CDATA[]]></Title>
+				</HistogramData>
+    			<HistogramData>
+					<Id>1732063953762</Id>
+					<Name><![CDATA[busFuelHistData]]></Name>
+					<X>730</X><Y>1630</Y>
+					<Label><X>15</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<AutoUpdate>false</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1724745600000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+					</RecurrenceCode>
+					<Value><![CDATA[]]></Value>
+					<NumberOfIntervals>10</NumberOfIntervals>
+					<MinMaxAutodetect>false</MinMaxAutodetect>
+					<RangeMinExpression><![CDATA[0]]></RangeMinExpression>
+					<RangeMaxExpression><![CDATA[2]]></RangeMaxExpression>
+					<InitialIntervalSize><![CDATA[.25]]></InitialIntervalSize>
 					<CalculateCDF>true</CalculateCDF>
 					<CalculatePercentiles>false</CalculatePercentiles>
 					<LowPercent>10</LowPercent>
@@ -2908,25 +3010,36 @@ updateDemandPlot();]]></Body>
 					</HistogramDataExpression>
 					<HistogramDataExpression>
 					<Id>1725382831620</Id>
-					<Expression><![CDATA[walkDistHistData]]></Expression>
-						<ColorPDF>-1271739086</ColorPDF>
+					<Expression><![CDATA[carEVDistHistData]]></Expression>
+						<ColorPDF>-1258301696</ColorPDF>
 						<ColorCDF>-9728477</ColorCDF>
 						<ColorLowPercent>-12004916</ColorLowPercent>
 						<ColorHighPercent>-32944</ColorHighPercent>
 						<ColorMean>-16728065</ColorMean>
 						<LineWidth>1</LineWidth>						
-						<Title><![CDATA[Walk]]></Title>							
+						<Title><![CDATA[Car EV]]></Title>							
 					</HistogramDataExpression>
 					<HistogramDataExpression>
 					<Id>1730921177872</Id>
-					<Expression><![CDATA[carEVDistHistData]]></Expression>
-						<ColorPDF>-1258301696</ColorPDF>
+					<Expression><![CDATA[walkDistHistData]]></Expression>
+						<ColorPDF>-1271739086</ColorPDF>
 						<ColorCDF>-16728065</ColorCDF>
 						<ColorLowPercent>-8097537</ColorLowPercent>
 						<ColorHighPercent>-13447886</ColorHighPercent>
 						<ColorMean>-4565549</ColorMean>
 						<LineWidth>1</LineWidth>						
-						<Title><![CDATA[Car EV]]></Title>							
+						<Title><![CDATA[Walk]]></Title>							
+					</HistogramDataExpression>
+					<HistogramDataExpression>
+					<Id>1732064079621</Id>
+					<Expression><![CDATA[busDistHistData]]></Expression>
+						<ColorPDF>-1275019265</ColorPDF>
+						<ColorCDF>-4565549</ColorCDF>
+						<ColorLowPercent>-60269</ColorLowPercent>
+						<ColorHighPercent>-9404272</ColorHighPercent>
+						<ColorMean>-2354116</ColorMean>
+						<LineWidth>1</LineWidth>						
+						<Title><![CDATA[Bus]]></Title>							
 					</HistogramDataExpression>
     			</Histogram>
 				<Text>
@@ -3015,25 +3128,36 @@ updateDemandPlot();]]></Body>
 					</HistogramDataExpression>
 					<HistogramDataExpression>
 					<Id>1725383137860</Id>
-					<Expression><![CDATA[walkEnergyHistData]]></Expression>
-						<ColorPDF>-1271739086</ColorPDF>
+					<Expression><![CDATA[carEVEnergyHistData]]></Expression>
+						<ColorPDF>-1258301696</ColorPDF>
 						<ColorCDF>-9807155</ColorCDF>
 						<ColorLowPercent>-14774017</ColorLowPercent>
 						<ColorHighPercent>-6632142</ColorHighPercent>
 						<ColorMean>-14774017</ColorMean>
 						<LineWidth>1</LineWidth>						
-						<Title><![CDATA[Walk]]></Title>							
+						<Title><![CDATA[Car EV]]></Title>							
 					</HistogramDataExpression>
 					<HistogramDataExpression>
 					<Id>1730921250421</Id>
-					<Expression><![CDATA[carEVEnergyHistData]]></Expression>
-						<ColorPDF>-1258301696</ColorPDF>
+					<Expression><![CDATA[walkEnergyHistData]]></Expression>
+						<ColorPDF>-1271739086</ColorPDF>
 						<ColorCDF>-2987746</ColorCDF>
 						<ColorLowPercent>-3137392</ColorLowPercent>
 						<ColorHighPercent>-14774017</ColorHighPercent>
 						<ColorMean>-3137392</ColorMean>
 						<LineWidth>1</LineWidth>						
-						<Title><![CDATA[Car EV]]></Title>							
+						<Title><![CDATA[Walk]]></Title>							
+					</HistogramDataExpression>
+					<HistogramDataExpression>
+					<Id>1732064211652</Id>
+					<Expression><![CDATA[busEnergyHistData]]></Expression>
+						<ColorPDF>-1275019265</ColorPDF>
+						<ColorCDF>-2448096</ColorCDF>
+						<ColorLowPercent>-32944</ColorLowPercent>
+						<ColorHighPercent>-3137392</ColorHighPercent>
+						<ColorMean>-32944</ColorMean>
+						<LineWidth>1</LineWidth>						
+						<Title><![CDATA[Bus]]></Title>							
 					</HistogramDataExpression>
     			</Histogram>
 				<Text>
@@ -3122,25 +3246,36 @@ updateDemandPlot();]]></Body>
 					</HistogramDataExpression>
 					<HistogramDataExpression>
 					<Id>1725383166017</Id>
-					<Expression><![CDATA[walkFuelHistData]]></Expression>
-						<ColorPDF>-1271739086</ColorPDF>
+					<Expression><![CDATA[carEVFuelHistData]]></Expression>
+						<ColorPDF>-1258301696</ColorPDF>
 						<ColorCDF>-12004916</ColorCDF>
 						<ColorLowPercent>-4343957</ColorLowPercent>
 						<ColorHighPercent>-4343957</ColorHighPercent>
 						<ColorMean>-3137392</ColorMean>
 						<LineWidth>1</LineWidth>						
-						<Title><![CDATA[Walk]]></Title>							
+						<Title><![CDATA[Car EV]]></Title>							
 					</HistogramDataExpression>
 					<HistogramDataExpression>
 					<Id>1730921265348</Id>
-					<Expression><![CDATA[carEVFuelHistData]]></Expression>
-						<ColorPDF>-1258301696</ColorPDF>
+					<Expression><![CDATA[walkFuelHistData]]></Expression>
+						<ColorPDF>-1271739086</ColorPDF>
 						<ColorCDF>-8097537</ColorCDF>
 						<ColorLowPercent>-12004916</ColorLowPercent>
 						<ColorHighPercent>-12004916</ColorHighPercent>
 						<ColorMean>-32944</ColorMean>
 						<LineWidth>1</LineWidth>						
-						<Title><![CDATA[Car EV]]></Title>							
+						<Title><![CDATA[Walk]]></Title>							
+					</HistogramDataExpression>
+					<HistogramDataExpression>
+					<Id>1732064253627</Id>
+					<Expression><![CDATA[busFuelHistData]]></Expression>
+						<ColorPDF>-1275019265</ColorPDF>
+						<ColorCDF>-60269</ColorCDF>
+						<ColorLowPercent>-8097537</ColorLowPercent>
+						<ColorHighPercent>-8097537</ColorHighPercent>
+						<ColorMean>-13447886</ColorMean>
+						<LineWidth>1</LineWidth>						
+						<Title><![CDATA[Bus]]></Title>							
 					</HistogramDataExpression>
     			</Histogram>
 				<Text>
