@@ -912,7 +912,7 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 					<Delay>false</Delay>
 				</Link>
 				<Link SourceId="1728673901045" TargetId="1728319411992" Polarity="null">
-					<Height>20.0</Height>
+					<Height>-21.387</Height>
 					<PolarityPosition>0.95</PolarityPosition>
 					<Direction><X>-1</X><Y>80</Y></Direction>
 					<Id>1728590320750</Id>
