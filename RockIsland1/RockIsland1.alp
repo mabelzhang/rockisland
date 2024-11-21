@@ -75,14 +75,16 @@ double currSharedPc = 0.0;
 // TODO List, ArrayList don't work after import. 60 syntax errors everywhere
 // in compiled code in Main.java, impossible to debug in AnyLogic. So using
 // vanilla double[] for now, manually skipping invalid entries.
+// Update: Maybe it was because I didn't use "new" keyword. This is Java.
 double[] distsToKirkwall;
+
+// For route visualization on map
+Vector<GISRoute> routes = new Vector<GISRoute>();
 
 // Calculations from J Boulton for energy consumed by distance traveled
 // Average occupancy in car in Germany
 // Unit: passengers
 final float AVG_PPL_PER_CAR = 1.5f;
-// TODO ARBITRARY, replace with real data. Number For shared vehicles
-//final float AVG_PPL_PER_BUS = 46.0f;
 
 // Unit: MegaJoules / vehicle-kilometer
 // For oil cars, i.e. internal combustion engines (ICE)
@@ -116,6 +118,7 @@ import com.anylogic.engine.markup.GISRoute;
 //import com.anylogic.engine.LengthUnits;
 import com.anylogic.engine.gis.RouteProviderTransportType;
 
+import java.awt.Color;
 //import java.util.List;
 import java.util.Random;]]></Import>
 			<StartupCode><![CDATA[// TODO read csv header
@@ -1308,6 +1311,11 @@ carEVFuelHistData.reset();
 walkFuelHistData.reset();
 busFuelHistData.reset();
 
+// Clear route visualizations
+for (int i = 0; i < routes.size(); ++i)
+  routes.get(i).setVisible(false);
+routes.clear();
+
 // Interpolate using user-configured values in the Config panel.
 // Distance less than which a trip is considered walked rather than driven
 // Unit: km
@@ -1386,12 +1394,14 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
     //    postCodes.get(i).getLongitude(), 1000 * walkDistToKirkwall);
 
     // Visualize walking route
-    if (!transportVisualized)
+    if (!transportVisualized && gismap != null)
     {
       route = walkRouteProvider.getRoute(gismap,
           postCodes.get(i).getLatitude(), postCodes.get(i).getLongitude(),
           centralKirkwall.getLatitude(), centralKirkwall.getLongitude());
       route.setVisible(true);
+      route.setLineColor(new Color(50, 205, 50, 180));
+      routes.add(route);
     }
 
     // Populate Histogram Data
@@ -1420,16 +1430,27 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
     //    postCodes.get(i).postcode, postCodes.get(i).getLatitude(),
     //    postCodes.get(i).getLongitude(), distToKirkwall);
 
+    // Get route. Use car route for bus as well
+    if (!transportVisualized && gismap != null)
+    {
+      route = gismap.getRoute(
+        postCodes.get(i).getLatitude(), postCodes.get(i).getLongitude(),
+        centralKirkwall.getLatitude(), centralKirkwall.getLongitude());
+    }
+
     // Multi-passenger bus (assumes oil)
     if (Math.random() < currSharedPc)
     {
       energyBusConsumed = distToKirkwall * BUS_ENERGY_INTEN_OIL_PKM;
       fuelBusConsumed = energyBusConsumed / MJ_ENERGY_PER_L_GAS;
 
-      // TODO create bus histogram entries
       busDistHistData.add(distToKirkwall);
       busEnergyHistData.add(energyBusConsumed);
       busFuelHistData.add(fuelBusConsumed);
+
+      // NOTE: Make sure this corresponds to bus color in histograms
+      if (route != null)
+        route.setLineColor(new Color(0, 191, 255, 180));
     }
     // Single-passenger car
     else
@@ -1448,6 +1469,10 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
 
         //System.out.printf(" %.2f MJ energy, %.2f L fuel (EV)\n",
         //    energyEVConsumed, fuelEVConsumed);
+
+        // NOTE: Make sure this corresponds to BEV car color in histograms
+        if (route != null)
+          route.setLineColor(new Color(255, 215, 0, 180));
       }
       // Oil car
       else
@@ -1465,16 +1490,18 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
 
         //System.out.printf(" %.2f MJ energy, %.2f L fuel (ICE)\n",
         //    energyOilConsumed, fuelOilConsumed);
+
+        // NOTE: Make sure this corresponds to ICE car color in histograms
+        if (route != null)
+          route.setLineColor(new Color(106, 90, 205, 180));
       }
     }
 
     // Visualize route
-    if (!transportVisualized && gismap != null)
+    if (!transportVisualized)
     {
-      route = gismap.getRoute(
-        postCodes.get(i).getLatitude(), postCodes.get(i).getLongitude(),
-        centralKirkwall.getLatitude(), centralKirkwall.getLongitude());
       route.setVisible(true);
+      routes.add(route);
     }
 
     // Stats
@@ -1496,13 +1523,7 @@ meanActiveDist = activeDistTtl / nValidActiveDists;
 // NOTE: In order to have setMinMax() function, you must set the HistogramData
 // to have Values Range FIXED, not automatic.
 // setMinMax() also doesn't do it on the fly, it WIPES the histogram first.
-//walkDistHistData.setMinMax(carDistXMin, carDistXMax);
-
-if (!transportVisualized)
-{
-  transportVisualized = true;
-}
-]]></Body>
+//walkDistHistData.setMinMax(carDistXMin, carDistXMax);]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
