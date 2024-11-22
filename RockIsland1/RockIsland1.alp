@@ -81,6 +81,17 @@ double[] distsToKirkwall;
 // For route visualization on map
 Vector<GISRoute> routes = new Vector<GISRoute>();
 
+// For time stacked charts
+double carOilDistTotal = 0;
+double carEVDistTotal = 0;
+double busDistTotal = 0;
+double walkDistTotal = 0;
+
+double carOilFuelTotal = 0;
+double carEVFuelTotal = 0;
+double busFuelTotal = 0;
+double walkFuelTotal = 0;
+
 // Calculations from J Boulton for energy consumed by distance traveled
 // Average occupancy in car in Germany
 // Unit: passengers
@@ -1174,7 +1185,9 @@ updateTransport();
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// Update single-bar stacked chart
+					<Body><![CDATA[// This is electricity grid data from csv for practice
+/*
+// Update single-bar stacked chart
 // get() returns DataItem
 if (capacityStacked.get(STK_COAL_I) != null)
 {
@@ -1202,6 +1215,7 @@ if (capacityStacked.get(STK_SOLAR_I) != null)
 }
 
 capacityStacked.refresh();
+*/
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -1214,7 +1228,9 @@ capacityStacked.refresh();
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// initYear has to be 1939, because only Main() gets called at initial
+					<Body><![CDATA[// This is electricity grid data from csv for practice
+/*
+// initYear has to be 1939, because only Main() gets called at initial
 // iteration, events don't get called until the next iteration!
 // csv data starts at 1940. So subtract by 1939 + 1 to get 0.
 int currYearOffset = currYear - (initYear + 1);
@@ -1246,6 +1262,7 @@ if (capacityTimeStacked.get(STK_SOLAR_I) != null)
 }
 
 capacityTimeStacked.refresh();
+*/
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -1258,7 +1275,9 @@ capacityTimeStacked.refresh();
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// get() returns DataSet. 1 DataSet per color
+					<Body><![CDATA[// This is electricity grid data from csv for practice
+/*
+// get() returns DataSet. 1 DataSet per color
 if (demandPlot.get(LINE_CAPACITY_I) != null)
 {
   // Total capacity is the sum of all energy types
@@ -1271,6 +1290,7 @@ if (demandPlot.get(LINE_DEMAND_I) != null)
 }
 
 demandPlot.refresh();
+*/
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -1310,6 +1330,17 @@ carOilFuelHistData.reset();
 carEVFuelHistData.reset();
 walkFuelHistData.reset();
 busFuelHistData.reset();
+
+// Clear values for time stacked charts
+carOilDistTotal = 0;
+carEVDistTotal = 0;
+busDistTotal = 0;
+walkDistTotal = 0;
+
+carOilFuelTotal = 0;
+carEVFuelTotal = 0;
+busFuelTotal = 0;
+walkFuelTotal = 0;
 
 // Clear route visualizations
 for (int i = 0; i < routes.size(); ++i)
@@ -1416,6 +1447,8 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
     walkEnergyHistData.add(0);
     walkFuelHistData.add(0);
 
+    walkDistTotal += walkDistToKirkwall;
+
     // Stats
     nValidActiveDists += 1;
     activeDistTtl += distToKirkwall;
@@ -1448,6 +1481,9 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
       busEnergyHistData.add(energyBusConsumed);
       busFuelHistData.add(fuelBusConsumed);
 
+      busDistTotal += distToKirkwall;
+      busFuelTotal += fuelBusConsumed;
+
       // NOTE: Make sure this corresponds to bus color in histograms
       if (route != null)
         route.setLineColor(new Color(0, 191, 255, 180));
@@ -1466,6 +1502,9 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
         carEVDistHistData.add(distToKirkwall);
         carEVEnergyHistData.add(energyEVConsumed);
         carEVFuelHistData.add(fuelEVConsumed);
+
+        carEVDistTotal += distToKirkwall;
+        carEVFuelTotal += fuelEVConsumed;
 
         //System.out.printf(" %.2f MJ energy, %.2f L fuel (EV)\n",
         //    energyEVConsumed, fuelEVConsumed);
@@ -1491,6 +1530,10 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
         //System.out.printf(" %.2f MJ energy, %.2f L fuel (ICE)\n",
         //    energyOilConsumed, fuelOilConsumed);
 
+        // Update quantity for time stacked chart
+        carOilDistTotal += distToKirkwall;
+        carOilFuelTotal += fuelOilConsumed;
+
         // NOTE: Make sure this corresponds to ICE car color in histograms
         if (route != null)
           route.setLineColor(new Color(106, 90, 205, 180));
@@ -1515,15 +1558,21 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
 meanVehicleDist = vehicleDistTtl / nValidVehicleDists;
 meanActiveDist = activeDistTtl / nValidActiveDists;
 
-// Use the width of the car bars, for the walk bars
-//double carDistBinWidth = carDistHistData.getIntervalWidth();
-
-//double carDistXMin = carDistHistData.getXMin();
-//double carDistXMax = carDistHistData.getXMax();
+// setMinMax() doesn't do it on the fly, it WIPES the histogram first.
 // NOTE: In order to have setMinMax() function, you must set the HistogramData
 // to have Values Range FIXED, not automatic.
-// setMinMax() also doesn't do it on the fly, it WIPES the histogram first.
-//walkDistHistData.setMinMax(carDistXMin, carDistXMax);]]></Body>
+//carEVDistHistData.setMinMax(carOilDistHistData.getXMin(), carOilDistHistData.getXMax());
+// Use the width of the car bars, for the walk bars
+// Can't find a way to set bin widths
+//double carDistBinWidth = carDistHistData.getIntervalWidth();
+
+/*
+// Only visualize once, to save resource consumption
+if (!transportVisualized)
+{
+  transportVisualized = true;
+}
+*/]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
 					<ReturnModificator>VOID</ReturnModificator>
@@ -2374,19 +2423,19 @@ updateDemandPlot();]]></Body>
 				</Text>
 				<Text>
 					<Id>1721137196482</Id>
-					<Name><![CDATA[gridButton0]]></Name>
+					<Name><![CDATA[annualButton0]]></Name>
 					<X>120</X><Y>20</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<OnClickCode><![CDATA[viewGrid.navigateTo();]]></OnClickCode>
+					<OnClickCode><![CDATA[viewAnnual.navigateTo();]]></OnClickCode>
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-1</Color>
-					<Text><![CDATA[Grid]]></Text>
+					<Text><![CDATA[Annual]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>30</Size>
@@ -2396,7 +2445,7 @@ updateDemandPlot();]]></Body>
 				</Text>
 				<Rectangle>
 					<Id>1721138030673</Id>
-					<Name><![CDATA[gridTabBar]]></Name>
+					<Name><![CDATA[annualTabBar]]></Name>
 					<X>0</X><Y>600</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -2418,7 +2467,7 @@ updateDemandPlot();]]></Body>
 				</Rectangle>
 				<Rectangle>
 					<Id>1721138030675</Id>
-					<Name><![CDATA[gridTabActive]]></Name>
+					<Name><![CDATA[annualTabActive]]></Name>
 					<X>100</X><Y>600</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -2432,7 +2481,7 @@ updateDemandPlot();]]></Body>
 					<LineColor/>
 					<LineMaterial>null</LineMaterial>
 					<LineStyle>SOLID</LineStyle>
-					<Width>100</Width>
+					<Width>140</Width>
 					<Height>70</Height>
 					<Rotation>0.0</Rotation>
 					<FillColor>-4134861</FillColor>
@@ -2440,19 +2489,19 @@ updateDemandPlot();]]></Body>
 				</Rectangle>
 				<Text>
 					<Id>1721138030677</Id>
-					<Name><![CDATA[gridButton1]]></Name>
+					<Name><![CDATA[annualButton1]]></Name>
 					<X>120</X><Y>620</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<OnClickCode><![CDATA[viewGrid.navigateTo();]]></OnClickCode>
+					<OnClickCode><![CDATA[viewAnnual.navigateTo();]]></OnClickCode>
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-1</Color>
-					<Text><![CDATA[Grid]]></Text>
+					<Text><![CDATA[Annual]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>30</Size>
@@ -2486,13 +2535,13 @@ updateDemandPlot();]]></Body>
 					<Id>1721139666834</Id>
 					<Name><![CDATA[capacityStacked]]></Name>
 					<Description><![CDATA[Island Grid Capacity]]></Description>
-					<X>10</X><Y>1000</Y>
+					<X>600</X><Y>1000</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<AutoUpdate>false</AutoUpdate>
+					<AutoUpdate>true</AutoUpdate>
 					<OccurrenceAtTime>true</OccurrenceAtTime>
 					<OccurrenceDate>1721203200000</OccurrenceDate>
 					<OccurrenceTime Class="CodeUnitValue">
@@ -2529,40 +2578,28 @@ updateDemandPlot();]]></Body>
 					</Labels>
 					<ShowLegend>true</ShowLegend>
 					<DataItem>
-					<Id>1721139668286</Id>
-					<Expression><![CDATA[10]]></Expression>
-					<Color>-16777216</Color>
-						<Title><![CDATA[coal]]></Title>
-					</DataItem>
-					<DataItem>
-					<Id>1721157193330</Id>
-					<Expression><![CDATA[20]]></Expression>
-					<Color>-14774017</Color>
-						<Title><![CDATA[hydro]]></Title>
-					</DataItem>
-					<DataItem>
 					<Id>1721157276648</Id>
-					<Expression><![CDATA[40]]></Expression>
-					<Color>-4144960</Color>
-						<Title><![CDATA[gas]]></Title>
+					<Expression><![CDATA[carOilFuelTotal]]></Expression>
+					<Color>-9807155</Color>
+						<Title><![CDATA[Car ICE]]></Title>
 					</DataItem>
 					<DataItem>
 					<Id>1721157280588</Id>
-					<Expression><![CDATA[30]]></Expression>
-					<Color>-29696</Color>
-						<Title><![CDATA[diesel]]></Title>
+					<Expression><![CDATA[carEVFuelTotal]]></Expression>
+					<Color>-10496</Color>
+						<Title><![CDATA[Car EV]]></Title>
 					</DataItem>
 					<DataItem>
 					<Id>1721157287640</Id>
-					<Expression><![CDATA[50]]></Expression>
-					<Color>-6632142</Color>
-						<Title><![CDATA[wind]]></Title>
+					<Expression><![CDATA[busFuelTotal]]></Expression>
+					<Color>-16728065</Color>
+						<Title><![CDATA[Bus]]></Title>
 					</DataItem>
 					<DataItem>
 					<Id>1721157291081</Id>
-					<Expression><![CDATA[20]]></Expression>
-					<Color>-256</Color>
-						<Title><![CDATA[solar]]></Title>
+					<Expression><![CDATA[walkFuelTotal]]></Expression>
+					<Color>-6632142</Color>
+						<Title><![CDATA[Walk]]></Title>
 					</DataItem>
 					<ScaleToExpression><![CDATA[1]]></ScaleToExpression>
 					<ScaleType>AUTO</ScaleType>
@@ -2573,14 +2610,14 @@ updateDemandPlot();]]></Body>
     			</StackChart>
     			<TimeStackChart>
 					<Id>1721300948441</Id>
-					<Name><![CDATA[capacityTimeStacked]]></Name>
+					<Name><![CDATA[fuelTimeStacked]]></Name>
 					<X>10</X><Y>690</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
-					<AutoUpdate>false</AutoUpdate>
+					<AutoUpdate>true</AutoUpdate>
 					<OccurrenceAtTime>true</OccurrenceAtTime>
 					<OccurrenceDate>1721376000000</OccurrenceDate>
 					<OccurrenceTime Class="CodeUnitValue">
@@ -2620,52 +2657,36 @@ updateDemandPlot();]]></Body>
 					<TimeWindowUnits>YEAR</TimeWindowUnits>
 					<TimeWindowExpression><![CDATA[161]]></TimeWindowExpression>
 					<DatasetExpression>
-					<Id>1721300950468</Id>
-					<Expression><![CDATA[my_dataset]]></Expression>
-					<Color>-16777216</Color>
-					<Expression2><![CDATA[10]]></Expression2>
-					<Expression2Flag>true</Expression2Flag>
-							<Title><![CDATA[coal]]></Title>
-					</DatasetExpression>
-					<DatasetExpression>
-					<Id>1721301182378</Id>
-					<Expression><![CDATA[my_dataset1]]></Expression>
-					<Color>-14774017</Color>
-					<Expression2><![CDATA[20]]></Expression2>
-					<Expression2Flag>true</Expression2Flag>
-							<Title><![CDATA[hydro]]></Title>
-					</DatasetExpression>
-					<DatasetExpression>
 					<Id>1721301221923</Id>
 					<Expression><![CDATA[my_dataset2]]></Expression>
-					<Color>-4144960</Color>
-					<Expression2><![CDATA[40]]></Expression2>
+					<Color>-9807155</Color>
+					<Expression2><![CDATA[carOilDistTotal]]></Expression2>
 					<Expression2Flag>true</Expression2Flag>
-							<Title><![CDATA[gas]]></Title>
+							<Title><![CDATA[Car ICE]]></Title>
 					</DatasetExpression>
 					<DatasetExpression>
 					<Id>1721301243621</Id>
 					<Expression><![CDATA[my_dataset3]]></Expression>
-					<Color>-29696</Color>
-					<Expression2><![CDATA[30]]></Expression2>
+					<Color>-10496</Color>
+					<Expression2><![CDATA[carEVDistTotal]]></Expression2>
 					<Expression2Flag>true</Expression2Flag>
-							<Title><![CDATA[diesel]]></Title>
+							<Title><![CDATA[Car EV]]></Title>
 					</DatasetExpression>
 					<DatasetExpression>
 					<Id>1721301264473</Id>
 					<Expression><![CDATA[my_dataset4]]></Expression>
-					<Color>-6632142</Color>
-					<Expression2><![CDATA[50]]></Expression2>
+					<Color>-16728065</Color>
+					<Expression2><![CDATA[busDistTotal]]></Expression2>
 					<Expression2Flag>true</Expression2Flag>
-							<Title><![CDATA[wind]]></Title>
+							<Title><![CDATA[Bus]]></Title>
 					</DatasetExpression>
 					<DatasetExpression>
 					<Id>1721301271482</Id>
 					<Expression><![CDATA[my_dataset5]]></Expression>
-					<Color>-256</Color>
-					<Expression2><![CDATA[20]]></Expression2>
+					<Color>-6632142</Color>
+					<Expression2><![CDATA[walkDistTotal]]></Expression2>
 					<Expression2Flag>true</Expression2Flag>
-							<Title><![CDATA[solar]]></Title>
+							<Title><![CDATA[Walk]]></Title>
 					</DatasetExpression>
 					<SamplesToKeep>161</SamplesToKeep>
 					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
@@ -2675,9 +2696,10 @@ updateDemandPlot();]]></Body>
     			<TimePlot>
 					<Id>1722267050948</Id>
 					<Name><![CDATA[demandPlot]]></Name>
-					<X>290</X><Y>1000</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>330</X><Y>1000</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
+					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
@@ -2751,7 +2773,7 @@ updateDemandPlot();]]></Body>
     			</TimePlot>
 				<Text>
 					<Id>1722267497419</Id>
-					<Name><![CDATA[capacityTimeStackedTitle]]></Name>
+					<Name><![CDATA[distTimeStackedTitle]]></Name>
 					<X>250</X><Y>690</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -2762,7 +2784,7 @@ updateDemandPlot();]]></Body>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[Electricity Grid Capacity (MW)]]></Text>
+					<Text><![CDATA[Distance Traveled (km)]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>16</Size>
@@ -2772,8 +2794,8 @@ updateDemandPlot();]]></Body>
 				</Text>
 				<Text>
 					<Id>1722267631091</Id>
-					<Name><![CDATA[capacityTimeStackedTitle1]]></Name>
-					<X>140</X><Y>1000</Y>
+					<Name><![CDATA[fuelStackedTitle]]></Name>
+					<X>730</X><Y>1000</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2783,7 +2805,7 @@ updateDemandPlot();]]></Body>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-16777216</Color>
-					<Text><![CDATA[Capacity This Year (MW)]]></Text>
+					<Text><![CDATA[Fuel Consumption This Year (L)]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>16</Size>
@@ -2794,9 +2816,10 @@ updateDemandPlot();]]></Body>
 				<Text>
 					<Id>1722269957511</Id>
 					<Name><![CDATA[capacityTimeStackedTitle2]]></Name>
-					<X>420</X><Y>1000</Y>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
+					<X>460</X><Y>1000</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
-					<PublicFlag>true</PublicFlag>
+					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D</DrawMode>
@@ -2814,7 +2837,7 @@ updateDemandPlot();]]></Body>
 				</Text>
 				<Rectangle>
 					<Id>1724688385613</Id>
-					<Name><![CDATA[transportTabBar]]></Name>
+					<Name><![CDATA[histTabBar]]></Name>
 					<X>0</X><Y>1200</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -2836,19 +2859,19 @@ updateDemandPlot();]]></Body>
 				</Rectangle>
 				<Text>
 					<Id>1724688385617</Id>
-					<Name><![CDATA[gridButton2]]></Name>
+					<Name><![CDATA[annualButton2]]></Name>
 					<X>120</X><Y>1220</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<OnClickCode><![CDATA[viewGrid.navigateTo();]]></OnClickCode>
+					<OnClickCode><![CDATA[viewAnnual.navigateTo();]]></OnClickCode>
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-1</Color>
-					<Text><![CDATA[Grid]]></Text>
+					<Text><![CDATA[Annual]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>30</Size>
@@ -2880,8 +2903,8 @@ updateDemandPlot();]]></Body>
 				</Text>
 				<Rectangle>
 					<Id>1724688447606</Id>
-					<Name><![CDATA[transportTabActive]]></Name>
-					<X>200</X><Y>1200</Y>
+					<Name><![CDATA[histTabActive]]></Name>
+					<X>240</X><Y>1200</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -2902,19 +2925,19 @@ updateDemandPlot();]]></Body>
 				</Rectangle>
 				<Text>
 					<Id>1724688457131</Id>
-					<Name><![CDATA[TransportButton2]]></Name>
-					<X>220</X><Y>1220</Y>
+					<Name><![CDATA[histButton2]]></Name>
+					<X>260</X><Y>1220</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<OnClickCode><![CDATA[viewTransport.navigateTo();]]></OnClickCode>
+					<OnClickCode><![CDATA[viewHistogram.navigateTo();]]></OnClickCode>
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-1</Color>
-					<Text><![CDATA[Transport]]></Text>
+					<Text><![CDATA[Histogram]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>30</Size>
@@ -2924,19 +2947,19 @@ updateDemandPlot();]]></Body>
 				</Text>
 				<Text>
 					<Id>1724688541293</Id>
-					<Name><![CDATA[TransportButton1]]></Name>
-					<X>220</X><Y>620</Y>
+					<Name><![CDATA[histButton1]]></Name>
+					<X>260</X><Y>620</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<OnClickCode><![CDATA[viewTransport.navigateTo();]]></OnClickCode>
+					<OnClickCode><![CDATA[viewHistogram.navigateTo();]]></OnClickCode>
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-1</Color>
-					<Text><![CDATA[Transport]]></Text>
+					<Text><![CDATA[Histogram]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>30</Size>
@@ -2946,19 +2969,19 @@ updateDemandPlot();]]></Body>
 				</Text>
 				<Text>
 					<Id>1724688621668</Id>
-					<Name><![CDATA[TransportButton0]]></Name>
-					<X>220</X><Y>20</Y>
+					<Name><![CDATA[histButton0]]></Name>
+					<X>260</X><Y>20</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<OnClickCode><![CDATA[viewTransport.navigateTo();]]></OnClickCode>
+					<OnClickCode><![CDATA[viewHistogram.navigateTo();]]></OnClickCode>
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-1</Color>
-					<Text><![CDATA[Transport]]></Text>
+					<Text><![CDATA[Histogram]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>30</Size>
@@ -3042,25 +3065,25 @@ updateDemandPlot();]]></Body>
 					</HistogramDataExpression>
 					<HistogramDataExpression>
 					<Id>1730921177872</Id>
-					<Expression><![CDATA[walkDistHistData]]></Expression>
-						<ColorPDF>-1271739086</ColorPDF>
+					<Expression><![CDATA[busDistHistData]]></Expression>
+						<ColorPDF>-1275019265</ColorPDF>
 						<ColorCDF>-16728065</ColorCDF>
 						<ColorLowPercent>-8097537</ColorLowPercent>
 						<ColorHighPercent>-13447886</ColorHighPercent>
 						<ColorMean>-4565549</ColorMean>
 						<LineWidth>1</LineWidth>						
-						<Title><![CDATA[Walk]]></Title>							
+						<Title><![CDATA[Bus]]></Title>							
 					</HistogramDataExpression>
 					<HistogramDataExpression>
 					<Id>1732064079621</Id>
-					<Expression><![CDATA[busDistHistData]]></Expression>
-						<ColorPDF>-1275019265</ColorPDF>
+					<Expression><![CDATA[walkDistHistData]]></Expression>
+						<ColorPDF>-1264923342</ColorPDF>
 						<ColorCDF>-4565549</ColorCDF>
 						<ColorLowPercent>-60269</ColorLowPercent>
 						<ColorHighPercent>-9404272</ColorHighPercent>
 						<ColorMean>-2354116</ColorMean>
 						<LineWidth>1</LineWidth>						
-						<Title><![CDATA[Bus]]></Title>							
+						<Title><![CDATA[Walk]]></Title>							
 					</HistogramDataExpression>
     			</Histogram>
 				<Text>
@@ -3160,25 +3183,25 @@ updateDemandPlot();]]></Body>
 					</HistogramDataExpression>
 					<HistogramDataExpression>
 					<Id>1730921250421</Id>
-					<Expression><![CDATA[walkEnergyHistData]]></Expression>
-						<ColorPDF>-1271739086</ColorPDF>
+					<Expression><![CDATA[busEnergyHistData]]></Expression>
+						<ColorPDF>-1275019265</ColorPDF>
 						<ColorCDF>-2987746</ColorCDF>
 						<ColorLowPercent>-3137392</ColorLowPercent>
 						<ColorHighPercent>-14774017</ColorHighPercent>
 						<ColorMean>-3137392</ColorMean>
 						<LineWidth>1</LineWidth>						
-						<Title><![CDATA[Walk]]></Title>							
+						<Title><![CDATA[Bus]]></Title>							
 					</HistogramDataExpression>
 					<HistogramDataExpression>
 					<Id>1732064211652</Id>
-					<Expression><![CDATA[busEnergyHistData]]></Expression>
-						<ColorPDF>-1275019265</ColorPDF>
+					<Expression><![CDATA[walkEnergyHistData]]></Expression>
+						<ColorPDF>-1264923342</ColorPDF>
 						<ColorCDF>-2448096</ColorCDF>
 						<ColorLowPercent>-32944</ColorLowPercent>
 						<ColorHighPercent>-3137392</ColorHighPercent>
 						<ColorMean>-32944</ColorMean>
 						<LineWidth>1</LineWidth>						
-						<Title><![CDATA[Bus]]></Title>							
+						<Title><![CDATA[Walk]]></Title>							
 					</HistogramDataExpression>
     			</Histogram>
 				<Text>
@@ -3278,25 +3301,25 @@ updateDemandPlot();]]></Body>
 					</HistogramDataExpression>
 					<HistogramDataExpression>
 					<Id>1730921265348</Id>
-					<Expression><![CDATA[walkFuelHistData]]></Expression>
-						<ColorPDF>-1271739086</ColorPDF>
+					<Expression><![CDATA[busFuelHistData]]></Expression>
+						<ColorPDF>-1275019265</ColorPDF>
 						<ColorCDF>-8097537</ColorCDF>
 						<ColorLowPercent>-12004916</ColorLowPercent>
 						<ColorHighPercent>-12004916</ColorHighPercent>
 						<ColorMean>-32944</ColorMean>
 						<LineWidth>1</LineWidth>						
-						<Title><![CDATA[Walk]]></Title>							
+						<Title><![CDATA[Bus]]></Title>							
 					</HistogramDataExpression>
 					<HistogramDataExpression>
 					<Id>1732064253627</Id>
-					<Expression><![CDATA[busFuelHistData]]></Expression>
-						<ColorPDF>-1275019265</ColorPDF>
+					<Expression><![CDATA[walkFuelHistData]]></Expression>
+						<ColorPDF>-1264923342</ColorPDF>
 						<ColorCDF>-60269</ColorCDF>
 						<ColorLowPercent>-8097537</ColorLowPercent>
 						<ColorHighPercent>-8097537</ColorHighPercent>
 						<ColorMean>-13447886</ColorMean>
 						<LineWidth>1</LineWidth>						
-						<Title><![CDATA[Bus]]></Title>							
+						<Title><![CDATA[Walk]]></Title>							
 					</HistogramDataExpression>
     			</Histogram>
 				<Text>
@@ -3344,19 +3367,19 @@ updateDemandPlot();]]></Body>
 				</Rectangle>
 				<Text>
 					<Id>1728312742555</Id>
-					<Name><![CDATA[gridButton3]]></Name>
+					<Name><![CDATA[annualButton3]]></Name>
 					<X>120</X><Y>1820</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<OnClickCode><![CDATA[viewGrid.navigateTo();]]></OnClickCode>
+					<OnClickCode><![CDATA[viewAnnual.navigateTo();]]></OnClickCode>
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-1</Color>
-					<Text><![CDATA[Grid]]></Text>
+					<Text><![CDATA[Annual]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>30</Size>
@@ -3389,7 +3412,7 @@ updateDemandPlot();]]></Body>
 				<Rectangle>
 					<Id>1728312742559</Id>
 					<Name><![CDATA[dynamicsTabActive]]></Name>
-					<X>370</X><Y>1800</Y>
+					<X>410</X><Y>1800</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3410,19 +3433,19 @@ updateDemandPlot();]]></Body>
 				</Rectangle>
 				<Text>
 					<Id>1728312742561</Id>
-					<Name><![CDATA[TransportButton3]]></Name>
-					<X>220</X><Y>1820</Y>
+					<Name><![CDATA[histButton3]]></Name>
+					<X>260</X><Y>1820</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<OnClickCode><![CDATA[viewTransport.navigateTo();]]></OnClickCode>
+					<OnClickCode><![CDATA[viewHistogram.navigateTo();]]></OnClickCode>
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-1</Color>
-					<Text><![CDATA[Transport]]></Text>
+					<Text><![CDATA[Histogram]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>30</Size>
@@ -3433,7 +3456,7 @@ updateDemandPlot();]]></Body>
 				<Text>
 					<Id>1728312761985</Id>
 					<Name><![CDATA[DynamicsButton3]]></Name>
-					<X>390</X><Y>1820</Y>
+					<X>430</X><Y>1820</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3455,7 +3478,7 @@ updateDemandPlot();]]></Body>
 				<Text>
 					<Id>1728312856221</Id>
 					<Name><![CDATA[DynamicsButton1]]></Name>
-					<X>390</X><Y>620</Y>
+					<X>430</X><Y>620</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3477,7 +3500,7 @@ updateDemandPlot();]]></Body>
 				<Text>
 					<Id>1728312871423</Id>
 					<Name><![CDATA[DynamicsButton2]]></Name>
-					<X>390</X><Y>1220</Y>
+					<X>430</X><Y>1220</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3499,7 +3522,7 @@ updateDemandPlot();]]></Body>
 				<Text>
 					<Id>1728312919664</Id>
 					<Name><![CDATA[DynamicsButton0]]></Name>
-					<X>390</X><Y>20</Y>
+					<X>430</X><Y>20</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3542,19 +3565,19 @@ updateDemandPlot();]]></Body>
 				</Rectangle>
 				<Text>
 					<Id>1728589387109</Id>
-					<Name><![CDATA[gridButton4]]></Name>
+					<Name><![CDATA[annualButton4]]></Name>
 					<X>120</X><Y>2420</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<OnClickCode><![CDATA[viewGrid.navigateTo();]]></OnClickCode>
+					<OnClickCode><![CDATA[viewAnnual.navigateTo();]]></OnClickCode>
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-1</Color>
-					<Text><![CDATA[Grid]]></Text>
+					<Text><![CDATA[Annual]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>30</Size>
@@ -3587,7 +3610,7 @@ updateDemandPlot();]]></Body>
 				<Rectangle>
 					<Id>1728589387114</Id>
 					<Name><![CDATA[dynamicsTabActive1]]></Name>
-					<X>540</X><Y>2400</Y>
+					<X>580</X><Y>2400</Y>
 					<Label><X>10</X><Y>10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3608,19 +3631,19 @@ updateDemandPlot();]]></Body>
 				</Rectangle>
 				<Text>
 					<Id>1728589387116</Id>
-					<Name><![CDATA[TransportButton4]]></Name>
-					<X>220</X><Y>2420</Y>
+					<Name><![CDATA[histButton4]]></Name>
+					<X>260</X><Y>2420</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
 					<DrawMode>SHAPE_DRAW_2D</DrawMode>
-					<OnClickCode><![CDATA[viewTransport.navigateTo();]]></OnClickCode>
+					<OnClickCode><![CDATA[viewHistogram.navigateTo();]]></OnClickCode>
 					<EmbeddedIcon>false</EmbeddedIcon>
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-1</Color>
-					<Text><![CDATA[Transport]]></Text>
+					<Text><![CDATA[Histogram]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>30</Size>
@@ -3631,7 +3654,7 @@ updateDemandPlot();]]></Body>
 				<Text>
 					<Id>1728589387118</Id>
 					<Name><![CDATA[DynamicsButton4]]></Name>
-					<X>390</X><Y>2420</Y>
+					<X>430</X><Y>2420</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3653,7 +3676,7 @@ updateDemandPlot();]]></Body>
 				<Text>
 					<Id>1728589408771</Id>
 					<Name><![CDATA[ConfigButton4]]></Name>
-					<X>560</X><Y>2420</Y>
+					<X>600</X><Y>2420</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3675,7 +3698,7 @@ updateDemandPlot();]]></Body>
 				<Text>
 					<Id>1728589461728</Id>
 					<Name><![CDATA[ConfigButton3]]></Name>
-					<X>560</X><Y>1820</Y>
+					<X>600</X><Y>1820</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3697,7 +3720,7 @@ updateDemandPlot();]]></Body>
 				<Text>
 					<Id>1728589493294</Id>
 					<Name><![CDATA[ConfigButton1]]></Name>
-					<X>560</X><Y>620</Y>
+					<X>600</X><Y>620</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3719,7 +3742,7 @@ updateDemandPlot();]]></Body>
 				<Text>
 					<Id>1728589516483</Id>
 					<Name><![CDATA[ConfigButton2]]></Name>
-					<X>560</X><Y>1220</Y>
+					<X>600</X><Y>1220</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -3741,7 +3764,7 @@ updateDemandPlot();]]></Body>
 				<Text>
 					<Id>1728589541634</Id>
 					<Name><![CDATA[ConfigButton0]]></Name>
-					<X>560</X><Y>20</Y>
+					<X>600</X><Y>20</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>true</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -4333,6 +4356,210 @@ updateDemandPlot();]]></Body>
 					</Font>
 					<Alignment>LEFT</Alignment>
 				</Text>
+    			<TimeStackChart>
+					<Id>1732232899131</Id>
+					<Name><![CDATA[fuelTimeStacked1]]></Name>
+					<X>480</X><Y>690</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<AutoUpdate>true</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1721376000000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+					</RecurrenceCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Width>470</Width>
+					<Height>292.642</Height>
+					<BackgroundColor/>
+					<BorderColor/>
+					<ChartArea>
+						<XOffset>50</XOffset>
+						<YOffset>30</YOffset>
+						<Width>390</Width>
+						<Height>202.642</Height>
+						<BackgroundColor>-1</BackgroundColor>
+						<BorderColor>-16777216</BorderColor>
+						<GridColor>-12566464</GridColor>
+					</ChartArea>
+					<Legend>
+						<Place>SOUTH</Place>
+						<TextColor>-16777216</TextColor>
+						<Size>30</Size>
+					</Legend>
+					<Labels>
+						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
+						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
+						<TextColor>-12566464</TextColor>
+					</Labels>
+					<ShowLegend>true</ShowLegend>
+					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
+					<TimeWindowUnits>YEAR</TimeWindowUnits>
+					<TimeWindowExpression><![CDATA[161]]></TimeWindowExpression>
+					<DatasetExpression>
+					<Id>1732232899125</Id>
+					<Expression><![CDATA[my_dataset2]]></Expression>
+					<Color>-9807155</Color>
+					<Expression2><![CDATA[carOilFuelTotal]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+							<Title><![CDATA[Car ICE]]></Title>
+					</DatasetExpression>
+					<DatasetExpression>
+					<Id>1732232899126</Id>
+					<Expression><![CDATA[my_dataset3]]></Expression>
+					<Color>-10496</Color>
+					<Expression2><![CDATA[carEVFuelTotal]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+							<Title><![CDATA[Car EV]]></Title>
+					</DatasetExpression>
+					<DatasetExpression>
+					<Id>1732232899127</Id>
+					<Expression><![CDATA[my_dataset4]]></Expression>
+					<Color>-16728065</Color>
+					<Expression2><![CDATA[busFuelTotal]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+							<Title><![CDATA[Bus]]></Title>
+					</DatasetExpression>
+					<DatasetExpression>
+					<Id>1732232899128</Id>
+					<Expression><![CDATA[my_dataset5]]></Expression>
+					<Color>-6632142</Color>
+					<Expression2><![CDATA[walkFuelTotal]]></Expression2>
+					<Expression2Flag>true</Expression2Flag>
+							<Title><![CDATA[Walk]]></Title>
+					</DatasetExpression>
+					<SamplesToKeep>161</SamplesToKeep>
+					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
+					<VerScaleType>AUTO</VerScaleType>
+					<LabelFormat>yyyy</LabelFormat>
+    			</TimeStackChart>
+				<Text>
+					<Id>1732232899163</Id>
+					<Name><![CDATA[fuelTimeStackedTitle]]></Name>
+					<X>720</X><Y>690</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Fuel Consumption (L)]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>16</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>CENTER</Alignment>
+				</Text>
+    			<StackChart>
+					<Id>1732233249497</Id>
+					<Name><![CDATA[capacityStacked1]]></Name>
+					<Description><![CDATA[Island Grid Capacity]]></Description>
+					<X>119</X><Y>1001</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<AutoUpdate>true</AutoUpdate>
+					<OccurrenceAtTime>true</OccurrenceAtTime>
+					<OccurrenceDate>1721203200000</OccurrenceDate>
+					<OccurrenceTime Class="CodeUnitValue">
+						<Code><![CDATA[0]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+					</OccurrenceTime>
+					<RecurrenceCode Class="CodeUnitValue">
+						<Code><![CDATA[1]]></Code>
+						<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
+					</RecurrenceCode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Width>310</Width>
+					<Height>180</Height>
+					<BackgroundColor/>
+					<BorderColor/>
+					<ChartArea>
+						<XOffset>50</XOffset>
+						<YOffset>30</YOffset>
+						<Width>100</Width>
+						<Height>120</Height>
+						<BackgroundColor>-1</BackgroundColor>
+						<BorderColor>-16777216</BorderColor>
+						<GridColor>-12566464</GridColor>
+					</ChartArea>
+					<Legend>
+						<Place>WEST</Place>
+						<TextColor>-16777216</TextColor>
+						<Size>100</Size>
+					</Legend>
+					<Labels>
+						<HorLabelsPosition>DEFAULT</HorLabelsPosition>
+						<VerLabelsPosition>DEFAULT</VerLabelsPosition>
+						<TextColor>-12566464</TextColor>
+					</Labels>
+					<ShowLegend>true</ShowLegend>
+					<DataItem>
+					<Id>1732233249491</Id>
+					<Expression><![CDATA[carOilDistTotal]]></Expression>
+					<Color>-9807155</Color>
+						<Title><![CDATA[Car ICE]]></Title>
+					</DataItem>
+					<DataItem>
+					<Id>1732233249492</Id>
+					<Expression><![CDATA[carEVDistTotal]]></Expression>
+					<Color>-10496</Color>
+						<Title><![CDATA[Car EV]]></Title>
+					</DataItem>
+					<DataItem>
+					<Id>1732233249493</Id>
+					<Expression><![CDATA[busDistTotal]]></Expression>
+					<Color>-16728065</Color>
+						<Title><![CDATA[Bus]]></Title>
+					</DataItem>
+					<DataItem>
+					<Id>1732233249494</Id>
+					<Expression><![CDATA[walkDistTotal]]></Expression>
+					<Color>-6632142</Color>
+						<Title><![CDATA[Walk]]></Title>
+					</DataItem>
+					<ScaleToExpression><![CDATA[1]]></ScaleToExpression>
+					<ScaleType>AUTO</ScaleType>
+					<Bars>
+						<Direction>UP</Direction>
+						<RelativeWidth>0.8</RelativeWidth>
+					</Bars>
+    			</StackChart>
+				<Text>
+					<Id>1732233249523</Id>
+					<Name><![CDATA[distStackedTitle]]></Name>
+					<X>249</X><Y>1001</Y>
+					<Label><X>0</X><Y>-10</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D</DrawMode>
+					<EmbeddedIcon>false</EmbeddedIcon>
+					<Z>0</Z>
+					<Rotation>0.0</Rotation>
+					<Color>-16777216</Color>
+					<Text><![CDATA[Distance Traveled This Year (km)]]></Text>
+					<Font>
+						<Name>SansSerif</Name>
+						<Size>16</Size>
+						<Style>0</Style>
+					</Font>
+					<Alignment>CENTER</Alignment>
+				</Text>
 			</Presentation>
 
 				</Level>
@@ -4378,25 +4605,25 @@ updateDemandPlot();]]></Body>
 			<Areas>
 				<Area>
 					<Id>1721135967571</Id>
-					<Name><![CDATA[viewGrid]]></Name>
+					<Name><![CDATA[viewAnnual]]></Name>
 					<X>0</X><Y>600</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
-					<Title><![CDATA[Grid Capacity]]></Title>
+					<Title><![CDATA[Annual Stacked Charts]]></Title>
 					<Width>1000</Width>
 					<Height>600</Height>
 				</Area>
 				<Area>
 					<Id>1724689136686</Id>
-					<Name><![CDATA[viewTransport]]></Name>
+					<Name><![CDATA[viewHistogram]]></Name>
 					<X>0</X><Y>1200</Y>
 					<Label><X>0</X><Y>-10</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>false</ShowLabel>
-					<Title><![CDATA[Transport]]></Title>
+					<Title><![CDATA[Histogram]]></Title>
 					<Width>1000</Width>
 					<Height>600</Height>
 				</Area>
