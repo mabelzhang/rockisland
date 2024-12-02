@@ -17,7 +17,20 @@
 		<ActiveObjectClass>
 			<Id>1721057739068</Id>
 			<Name><![CDATA[Main]]></Name>
-			<AdditionalClassCode><![CDATA[// Column index in energy capacity csv file
+			<AdditionalClassCode><![CDATA[Random rand = new Random();
+
+// Simulation time step
+int initYear = 0;
+int currYear = 0;
+// Make sure this matches actual setting in Simulation: Main
+// TODO: Find API to get this from AnyLogic, instead of setting manually
+// This is for system dynamics diagram for transport, not for CSV.
+// Number of years to interpolate init and final param values in config panel
+final int DURATION_YEARS = 100;
+
+// Not used anymore. For toy electricity grid data
+/*
+// Column index in energy capacity csv file
 // Also used for indexing colors in stacked charts
 final int STK_COAL_I = 0;
 final int STK_HYDRO_I = 1;
@@ -35,7 +48,6 @@ final boolean RAND_CAPACITY = true;
 final double WIND_RAND_PC = 0.1;
 final double SOLAR_RAND_PC = 0.1;
 final double DEMAND_RAND_PC = 0.1;
-Random rand = new Random();
 
 // TODO vectorize data instead of having 6 variables
 //int[] capacityData;
@@ -45,16 +57,9 @@ int coal, hydro, gas, diesel, wind, solar;
 int year;
 double demand = 0.0;
 
-int initYear = 0;
-int currYear = 0;
-// Make sure this matches actual setting in Simulation: Main
-// TODO: Find API to get this from AnyLogic, instead of setting manually
-// This is for system dynamics diagram for transport, not for CSV.
-// Number of years to interpolate init and final param values in config panel
-final int DURATION_YEARS = 100;
-
 // Does not include header row. Used to index time stack chart
 int rowI = -1;
+*/
 
 // Travel distances
 boolean transportInited = false;
@@ -80,7 +85,6 @@ double[] distsToKirkwall;
 
 // For route visualization on map
 Vector<GISRoute> routes = new Vector<GISRoute>();
-Vector<GISRoute> rails = new Vector<GISRoute>();
 
 // For time stacked charts
 double carOilDistTotal = 0;
@@ -92,6 +96,9 @@ double carOilFuelTotal = 0;
 double carEVFuelTotal = 0;
 double busFuelTotal = 0;
 double walkFuelTotal = 0;
+
+// Whether to visualize individual agent routes
+final boolean VIS_AGENT_ROUTES = false;
 
 // Calculations from J Boulton for energy consumed by distance traveled
 // Average occupancy in car in Germany
@@ -122,6 +129,17 @@ final float GJ_ENERGY_PER_TON_GAS = 44.75f;
 // MegaJoules of energy in 1 Liter of gas
 final float MJ_ENERGY_PER_L_GAS = GJ_ENERGY_PER_TON_GAS * 1000 / L_IN_TONNE_GAS;
 
+// For custom rails
+GISNetwork rails = null;
+// Keep track of the rails so we can batch process them. GISNetwork doesn't
+// expose added rails back to user.
+Vector<GISRoute> railsList = new Vector<GISRoute>();
+
+// Visualization radius in pixels, of rail stops
+final float RAIL_STOP_PX = 10.0f;
+
+// Now using AnyLogic type GISPoint
+/*
 // 2-tuple class for (lat, long)
 // Adapted from template tuple type https://stackoverflow.com/questions/2670982/using-pairs-or-2-tuples-in-java
 class LatLong
@@ -144,12 +162,13 @@ class LatLong
   {
     return longitude;
   }
-}]]></AdditionalClassCode>
+}
+*/]]></AdditionalClassCode>
 			<Import><![CDATA[import com.anylogic.engine.analysis.DataItem;
 import com.anylogic.engine.analysis.DataSet;
 
-//import com.anylogic.engine.AbstractShapeGISMap;
 import com.anylogic.engine.markup.GISRoute;
+import com.anylogic.engine.markup.GISNetwork;
 //import com.anylogic.engine.LengthUnits;
 import com.anylogic.engine.gis.RouteProviderTransportType;
 
@@ -157,14 +176,17 @@ import java.awt.Color;
 //import java.util.List;
 import java.util.HashMap;
 import java.util.Random;]]></Import>
-			<StartupCode><![CDATA[// TODO read csv header
+			<StartupCode><![CDATA[initYear = 1900 + date().getYear();
+System.out.println(initYear);
+
+// Not used anymore. For toy electricity grid data
+/*
+// TODO read csv header
 String header = capacityCsv.readLine();
 System.out.println(header);
 
-initYear = 1900 + date().getYear();
-System.out.println(initYear);
-
 year = coal = hydro = gas = diesel = wind = solar = 0;
+*/
 
 // Initialize transport calculations; create rail network
 initTransport();]]></StartupCode>
@@ -1253,7 +1275,7 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
     //    postCodes.get(i).getLongitude(), 1000 * walkDistToKirkwall);
 
     // Visualize walking route
-    if (!transportVisualized && gismap != null)
+    if (VIS_AGENT_ROUTES && !transportVisualized && gismap != null)
     {
       route = walkRouteProvider.getRoute(gismap,
           postCodes.get(i).getLatitude(), postCodes.get(i).getLongitude(),
@@ -1369,7 +1391,11 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
     }
 
     // Visualize route
-    if (!transportVisualized)
+    if (!VIS_AGENT_ROUTES)
+    {
+      route.setVisible(false);
+    }
+    else if (!transportVisualized)
     {
       route.setVisible(true);
       routes.add(route);
@@ -1407,10 +1433,11 @@ if (!transportVisualized)
 					<ReturnType><![CDATA[double]]></ReturnType>
 					<Id>1729705885615</Id>
 					<Name><![CDATA[readCsvLine]]></Name>
+					<ExcludeFromBuild>true</ExcludeFromBuild>
 					<X>-160</X><Y>710</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
+					<PresentationFlag>false</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
 					<Body><![CDATA[// Not used anymore. Toy electricity grid data from csv
 /*
@@ -1457,7 +1484,15 @@ updateDemandPlot();
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[rails.clear();
+					<Body><![CDATA[if (this.map == null)
+{
+  System.err.println("No ShapeGISMap found");
+  return;
+}
+ShapeGISMap gismap = this.map;
+GISRoute route = null;
+
+//rails.clear();
 
 // List of lat-long locations on train loop
 // Key-value pairs (name, LatLong)
@@ -1473,6 +1508,7 @@ Stromness: 58.96144, -3.29938
 Stenness: 58.98605, -3.21133
 Orphir: 58.93624, -3.14507
 */
+/*
 HashMap<String, LatLong> railStops = new HashMap<String, LatLong>();
 railStops.put("Holm", new LatLong(58.90588f, -2.88337f));
 railStops.put("Airport", new LatLong(58.95376f, -2.9023f));
@@ -1484,76 +1520,99 @@ railStops.put("Dounby", new LatLong(59.06805f, -3.23114f));
 railStops.put("Stromness", new LatLong(58.96144f, -3.29938f));
 railStops.put("Stenness", new LatLong(58.98605f, -3.21133f));
 railStops.put("Orphir", new LatLong(58.93624f, -3.14507f));
+*/
+GISPoint holmGP = new GISPoint(gismap, 58.90588, -2.88337);
+holmGP.initialize();
+GISPoint airportGP = new GISPoint(gismap, 58.95376, -2.9023);
+airportGP.initialize();
+GISPoint kirkwallGP = new GISPoint(gismap, 58.9816, -2.96037);
+kirkwallGP.initialize();
+GISPoint finstownGP = new GISPoint(gismap, 59.00666, -3.11541);
+finstownGP.initialize();
+GISPoint evieGP = new GISPoint(gismap, 59.10472, -3.08829);
+evieGP.initialize();
+GISPoint birsayGP = new GISPoint(gismap, 59.12954, -3.31337);
+birsayGP.initialize();
+GISPoint dounbyGP = new GISPoint(gismap, 59.06805, -3.23114);
+dounbyGP.initialize();
+GISPoint stromnessGP = new GISPoint(gismap, 58.96144, -3.29938);
+stromnessGP.initialize();
+GISPoint stennessGP = new GISPoint(gismap, 58.98605, -3.21133);
+stennessGP.initialize();
+GISPoint orphirGP = new GISPoint(gismap, 58.93624, -3.14507);
+orphirGP.initialize();
 
-GISRoute route = null;
-ShapeGISMap gismap = this.map;
-if (gismap == null)
-{
-  System.err.println("No ShapeGISMap found");
-  return;
-}
-
-Color railColor = new Color(255, 0, 255, 180);
+// 3rd arg is visibility
+rails = new GISNetwork(this.map, "Rail Network", true);
+// Add all stops to rail network
+rails.addAll(holmGP, airportGP, kirkwallGP, finstownGP, evieGP, birsayGP,
+    dounbyGP, stromnessGP, stennessGP, orphirGP);
 
 // Find routes to connect the rail stops
 route = gismap.getRoute(
-    railStops.get("Holm").getLat(), railStops.get("Holm").getLong(),
-    railStops.get("Airport").getLat(), railStops.get("Airport").getLong());
+    holmGP.getLatitude(), holmGP.getLongitude(),
+    airportGP.getLatitude(), airportGP.getLongitude());
 rails.add(route);
 
 route = gismap.getRoute(
-    railStops.get("Airport").getLat(), railStops.get("Airport").getLong(),
-    railStops.get("Kirkwall").getLat(), railStops.get("Kirkwall").getLong());
+    airportGP.getLatitude(), airportGP.getLongitude(),
+    kirkwallGP.getLatitude(), kirkwallGP.getLongitude());
 rails.add(route);
 
 route = gismap.getRoute(
-    railStops.get("Kirkwall").getLat(), railStops.get("Kirkwall").getLong(),
-    railStops.get("Finstown").getLat(), railStops.get("Finstown").getLong());
+    kirkwallGP.getLatitude(), kirkwallGP.getLongitude(),
+    finstownGP.getLatitude(), finstownGP.getLongitude());
 rails.add(route);
 
 route = gismap.getRoute(
-    railStops.get("Finstown").getLat(), railStops.get("Finstown").getLong(),
-    railStops.get("Evie").getLat(), railStops.get("Evie").getLong());
+    finstownGP.getLatitude(), finstownGP.getLongitude(),
+    evieGP.getLatitude(), evieGP.getLongitude());
 rails.add(route);
 
 route = gismap.getRoute(
-    railStops.get("Evie").getLat(), railStops.get("Evie").getLong(),
-    railStops.get("Birsay").getLat(), railStops.get("Birsay").getLong());
+    evieGP.getLatitude(), evieGP.getLongitude(),
+    birsayGP.getLatitude(), birsayGP.getLongitude());
 rails.add(route);
 
 route = gismap.getRoute(
-    railStops.get("Birsay").getLat(), railStops.get("Birsay").getLong(),
-    railStops.get("Dounby").getLat(), railStops.get("Dounby").getLong());
+    birsayGP.getLatitude(), birsayGP.getLongitude(),
+    dounbyGP.getLatitude(), dounbyGP.getLongitude());
 rails.add(route);
 
 route = gismap.getRoute(
-    railStops.get("Dounby").getLat(), railStops.get("Dounby").getLong(),
-    railStops.get("Stromness").getLat(), railStops.get("Stromness").getLong());
+    dounbyGP.getLatitude(), dounbyGP.getLongitude(),
+    stromnessGP.getLatitude(), stromnessGP.getLongitude());
 rails.add(route);
 
 route = gismap.getRoute(
-    railStops.get("Stromness").getLat(), railStops.get("Stromness").getLong(),
-    railStops.get("Stenness").getLat(), railStops.get("Stenness").getLong());
+    stromnessGP.getLatitude(), stromnessGP.getLongitude(),
+    stennessGP.getLatitude(), stennessGP.getLongitude());
 rails.add(route);
 
 route = gismap.getRoute(
-    railStops.get("Stenness").getLat(), railStops.get("Stenness").getLong(),
-    railStops.get("Orphir").getLat(), railStops.get("Orphir").getLong());
+    stennessGP.getLatitude(), stennessGP.getLongitude(),
+    orphirGP.getLatitude(), orphirGP.getLongitude());
 rails.add(route);
 
 route = gismap.getRoute(
-    railStops.get("Orphir").getLat(), railStops.get("Orphir").getLong(),
-    railStops.get("Holm").getLat(), railStops.get("Holm").getLong());
+    orphirGP.getLatitude(), orphirGP.getLongitude(),
+    holmGP.getLatitude(), holmGP.getLongitude());
 rails.add(route);
 
+/*
+// Custom colors don't work once routes added to GISNetwork :( How stupid
+Color railColor = new Color(255, 0, 255, 180);
 // Set visualization parameters for all routes on the rail
-for (int i = 0; i < rails.size(); ++i)
+for (int i = 0; i < railsList.size(); ++i)
 {
-  route = rails.get(i);
-  route.setVisible(true);
+  route = railsList.get(i);
   route.setLineColor(railColor);
   route.setLineWidth(10);
+  route.setVisible(true);
 }
+*/
+
+rails.initialize();
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -2356,7 +2415,8 @@ transportInited = true;
 					<ReadOnly>true</ReadOnly>
 					<Latitude>58.9816049</Latitude>	
 					<Longitude>-2.960369</Longitude>
-					<Radius>3</Radius>
+					<Radius>5</Radius>
+					<RadiusCode><![CDATA[RAIL_STOP_PX]]></RadiusCode>
 					<FillColor>2144175423</FillColor>
 				</GISPoint>
 				<GISPoint>
@@ -2379,7 +2439,8 @@ transportInited = true;
 					<ReadOnly>true</ReadOnly>
 					<Latitude>58.9614356</Latitude>	
 					<Longitude>-3.2993767</Longitude>
-					<Radius>3</Radius>
+					<Radius>5</Radius>
+					<RadiusCode><![CDATA[RAIL_STOP_PX]]></RadiusCode>
 					<FillColor>2144175423</FillColor>
 				</GISPoint>
 				<GISPoint>
@@ -2402,7 +2463,8 @@ transportInited = true;
 					<ReadOnly>true</ReadOnly>
 					<Latitude>58.9860486</Latitude>	
 					<Longitude>-3.2113294</Longitude>
-					<Radius>3</Radius>
+					<Radius>5</Radius>
+					<RadiusCode><![CDATA[RAIL_STOP_PX]]></RadiusCode>
 					<FillColor>2144175423</FillColor>
 				</GISPoint>
 				<GISPoint>
@@ -2426,6 +2488,7 @@ transportInited = true;
 					<Latitude>59.068048</Latitude>	
 					<Longitude>-3.2311373</Longitude>
 					<Radius>3</Radius>
+					<RadiusCode><![CDATA[RAIL_STOP_PX]]></RadiusCode>
 					<FillColor>2144175423</FillColor>
 				</GISPoint>
 				<GISPoint>
@@ -2449,6 +2512,7 @@ transportInited = true;
 					<Latitude>58.9058753</Latitude>	
 					<Longitude>-2.883371</Longitude>
 					<Radius>3</Radius>
+					<RadiusCode><![CDATA[RAIL_STOP_PX]]></RadiusCode>
 					<FillColor>2144175423</FillColor>
 				</GISPoint>
 				<GISPoint>
@@ -2472,6 +2536,7 @@ transportInited = true;
 					<Latitude>59.0066581</Latitude>	
 					<Longitude>-3.1154069</Longitude>
 					<Radius>3</Radius>
+					<RadiusCode><![CDATA[RAIL_STOP_PX]]></RadiusCode>
 					<FillColor>2144175423</FillColor>
 				</GISPoint>
 				<GISPoint>
@@ -2495,6 +2560,7 @@ transportInited = true;
 					<Latitude>58.9362373</Latitude>	
 					<Longitude>-3.1450715</Longitude>
 					<Radius>3</Radius>
+					<RadiusCode><![CDATA[RAIL_STOP_PX]]></RadiusCode>
 					<FillColor>2144175423</FillColor>
 				</GISPoint>
 				<GISPoint>
@@ -2518,6 +2584,7 @@ transportInited = true;
 					<Latitude>59.1295359</Latitude>	
 					<Longitude>-3.3133698</Longitude>
 					<Radius>3</Radius>
+					<RadiusCode><![CDATA[RAIL_STOP_PX]]></RadiusCode>
 					<FillColor>2144175423</FillColor>
 				</GISPoint>
 				<GISPoint>
@@ -2541,6 +2608,7 @@ transportInited = true;
 					<Latitude>59.1047175</Latitude>	
 					<Longitude>-3.0882896</Longitude>
 					<Radius>3</Radius>
+					<RadiusCode><![CDATA[RAIL_STOP_PX]]></RadiusCode>
 					<FillColor>2144175423</FillColor>
 				</GISPoint>
 				<GISPoint>
@@ -2564,6 +2632,7 @@ transportInited = true;
 					<Latitude>58.9537636</Latitude>	
 					<Longitude>-2.9022964990238824</Longitude>
 					<Radius>3</Radius>
+					<RadiusCode><![CDATA[RAIL_STOP_PX]]></RadiusCode>
 					<FillColor>2144175423</FillColor>
 				</GISPoint>
 			</Presentation>
@@ -5152,7 +5221,7 @@ transportInited = true;
 						</ColorMapping>
 					</ColorTable>
 					<AutoScale>true</AutoScale>
-					<Scale>1.0</Scale>
+					<Scale>0.5</Scale>
 					<Rotation>0.0</Rotation>
 					<AxisOrder>ZXY_AXIS_ORDER</AxisOrder>
 					<ApplyShading>true</ApplyShading>
