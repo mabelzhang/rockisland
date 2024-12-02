@@ -133,37 +133,11 @@ final float MJ_ENERGY_PER_L_GAS = GJ_ENERGY_PER_TON_GAS * 1000 / L_IN_TONNE_GAS;
 GISNetwork rails = null;
 // Keep track of the rails so we can batch process them. GISNetwork doesn't
 // expose added rails back to user.
-Vector<GISRoute> railsList = new Vector<GISRoute>();
+//Vector<GISRoute> railsList = new Vector<GISRoute>();
 
 // Visualization radius in pixels, of rail stops
 final float RAIL_STOP_PX = 10.0f;
-
-// Now using AnyLogic type GISPoint
-/*
-// 2-tuple class for (lat, long)
-// Adapted from template tuple type https://stackoverflow.com/questions/2670982/using-pairs-or-2-tuples-in-java
-class LatLong
-{
-  protected final float latitude;
-  protected final float longitude;
-
-  public LatLong(float lat, float lng)
-  {
-    this.latitude = lat;
-    this.longitude = lng;
-  }
-
-  public float getLat()
-  {
-    return latitude;
-  }
-
-  public float getLong()
-  {
-    return longitude;
-  }
-}
-*/]]></AdditionalClassCode>
+]]></AdditionalClassCode>
 			<Import><![CDATA[import com.anylogic.engine.analysis.DataItem;
 import com.anylogic.engine.analysis.DataSet;
 
@@ -1492,7 +1466,7 @@ updateDemandPlot();
 ShapeGISMap gismap = this.map;
 GISRoute route = null;
 
-//rails.clear();
+//railsList.clear();
 
 // List of lat-long locations on train loop
 // Key-value pairs (name, LatLong)
