@@ -51,7 +51,7 @@ int currYear = 0;
 // TODO: Find API to get this from AnyLogic, instead of setting manually
 // This is for system dynamics diagram for transport, not for CSV.
 // Number of years to interpolate init and final param values in config panel
-final int DURATION_YEARS = 161;
+final int DURATION_YEARS = 100;
 
 // Does not include header row. Used to index time stack chart
 int rowI = -1;
@@ -80,6 +80,7 @@ double[] distsToKirkwall;
 
 // For route visualization on map
 Vector<GISRoute> routes = new Vector<GISRoute>();
+Vector<GISRoute> rails = new Vector<GISRoute>();
 
 // For time stacked charts
 double carOilDistTotal = 0;
@@ -120,7 +121,30 @@ final float L_IN_TONNE_GAS = 1000 / THOUSAND_L_GAS_IN_TONNES;
 final float GJ_ENERGY_PER_TON_GAS = 44.75f;
 // MegaJoules of energy in 1 Liter of gas
 final float MJ_ENERGY_PER_L_GAS = GJ_ENERGY_PER_TON_GAS * 1000 / L_IN_TONNE_GAS;
-]]></AdditionalClassCode>
+
+// 2-tuple class for (lat, long)
+// Adapted from template tuple type https://stackoverflow.com/questions/2670982/using-pairs-or-2-tuples-in-java
+class LatLong
+{
+  protected final float latitude;
+  protected final float longitude;
+
+  public LatLong(float lat, float lng)
+  {
+    this.latitude = lat;
+    this.longitude = lng;
+  }
+
+  public float getLat()
+  {
+    return latitude;
+  }
+
+  public float getLong()
+  {
+    return longitude;
+  }
+}]]></AdditionalClassCode>
 			<Import><![CDATA[import com.anylogic.engine.analysis.DataItem;
 import com.anylogic.engine.analysis.DataSet;
 
@@ -131,6 +155,7 @@ import com.anylogic.engine.gis.RouteProviderTransportType;
 
 import java.awt.Color;
 //import java.util.List;
+import java.util.HashMap;
 import java.util.Random;]]></Import>
 			<StartupCode><![CDATA[// TODO read csv header
 String header = capacityCsv.readLine();
@@ -140,7 +165,9 @@ initYear = 1900 + date().getYear();
 System.out.println(initYear);
 
 year = coal = hydro = gas = diesel = wind = solar = 0;
-]]></StartupCode>
+
+// Initialize transport calculations; create rail network
+initTransport();]]></StartupCode>
 			<DestroyCode><![CDATA[capacityCsv.close();]]></DestroyCode>
 			<Generic>false</Generic>
 			<GenericParameter>
@@ -1050,88 +1077,6 @@ year = coal = hydro = gas = diesel = wind = solar = 0;
 			</Dependences>
 			<Events>
 				<Event>
-					<Id>1723833372872</Id>
-					<Name><![CDATA[initTransport]]></Name>
-					<Description><![CDATA[Only run once per simulation. Calculate travel distances for each post code and store them in memory for later use.
-]]></Description>
-					<X>-160</X><Y>90</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties TriggerType="condition" Mode="occuresOnce">
-						<Timeout Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
-						</Timeout>
-						<Rate Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
-							<Unit Class="RateUnits"><![CDATA[PER_YEAR]]></Unit>
-						</Rate>
-						<OccurrenceAtTime>true</OccurrenceAtTime>
-						<OccurrenceDate>1723881600000</OccurrenceDate>
-						<OccurrenceTime Class="CodeUnitValue">
-							<Code><![CDATA[0]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
-						</OccurrenceTime>
-						<RecurrenceCode Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[YEAR]]></Unit>
-						</RecurrenceCode>
-						<Condition><![CDATA[!transportInited]]></Condition>
-					</Properties>
-					<Action><![CDATA[// Only run once
-if (transportInited)
-{
-  return;
-}
-
-// Debug output: See transport types
-RouteProviderTransportType[] transportType = RouteProviderTransportType.values();
-System.out.println("Transport type:");
-for (int i = 0; i < transportType.length; ++i)
-{
-  System.out.println(transportType[i]);
-}
-
-// km
-double distToKirkwall = 0.0;
-double walkDistToKirkwall = 0.0;
-
-distsToKirkwall = new double[postCodes.size()];
-
-// Calculate distance from each post code to a fixed location
-for (int i = 0; i < postCodes.size(); ++i)
-{
-  // If post code is identical to destination, distance will be 0 and error
-  // will be thrown. Skip it
-  if (postCodes.get(i).postcode.equals(centralKirkwall.postcode))
-  {
-    continue;
-  }
-
-  try
-  {
-    // Unit: distanceByRoute() returns meters
-    // Convert to km for energy and fuel calculations
-    distToKirkwall = 0.001 * postCodes.get(i).distanceByRoute(centralKirkwall);
-
-    // Save to array for future iters
-    //distsToKirkwall.add(distToKirkwall);
-    distsToKirkwall[i] = distToKirkwall;
-  }
-  catch (java.lang.RuntimeException e)
-  {
-    // Skip the post code if a route cannot be found
-    continue;
-  }
-}
-
-// Set flag to not run again
-transportInited = true;
-]]></Action>
-				</Event>
-				<Event>
 					<Id>1729705703975</Id>
 					<Name><![CDATA[preUpdate]]></Name>
 					<X>-160</X><Y>30</Y>
@@ -1166,8 +1111,9 @@ transportInited = true;
 currYear = date().getYear() + 1900;
 System.out.println(currYear);
 
+// Not used anymore. Toy electricity grid data from csv
 // Update charts
-readCsvLine();
+//readCsvLine();
 
 // Update transport
 updateTransport();
@@ -1185,7 +1131,8 @@ updateTransport();
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// This is electricity grid data from csv for practice
+					<Body><![CDATA[// Not used anymore. Toy electricity grid data from csv
+// Also easier to update by setting chart data to variable directly in GUI
 /*
 // Update single-bar stacked chart
 // get() returns DataItem
@@ -1228,7 +1175,8 @@ capacityStacked.refresh();
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// This is electricity grid data from csv for practice
+					<Body><![CDATA[// Not used anymore. Toy electricity grid data from csv
+// Also easier to update by setting chart data to variable directly in GUI
 /*
 // initYear has to be 1939, because only Main() gets called at initial
 // iteration, events don't get called until the next iteration!
@@ -1275,7 +1223,7 @@ capacityTimeStacked.refresh();
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[// This is electricity grid data from csv for practice
+					<Body><![CDATA[// Not used anymore. Toy electricity grid data from csv
 /*
 // get() returns DataSet. 1 DataSet per color
 if (demandPlot.get(LINE_CAPACITY_I) != null)
@@ -1304,7 +1252,7 @@ demandPlot.refresh();
 
 TODO: Maybe the redundancy between histograms and system dynamics diagram is unnecessary, and should only calculate them in one place. Code is more maintainable if kept in a large block, rather than spaghetti across system dynamics flows. So maybe calculate the mean energy and fuel in this function too, store to class vars, and in the sys dyn flows just set them equal to class vars.
 ]]></Description>
-					<X>-160</X><Y>180</Y>
+					<X>-160</X><Y>210</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -1393,7 +1341,7 @@ GISRoute route = null;
 ShapeGISMap gismap = this.map;
 if (gismap == null)
 {
-  System.err.println("No ShapeGISMap found in agent");
+  System.err.println("No ShapeGISMap found");
 }
 
 // TODO wipe previous routes visualized. That would require storing all
@@ -1467,8 +1415,8 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
     if (!transportVisualized && gismap != null)
     {
       route = gismap.getRoute(
-        postCodes.get(i).getLatitude(), postCodes.get(i).getLongitude(),
-        centralKirkwall.getLatitude(), centralKirkwall.getLongitude());
+          postCodes.get(i).getLatitude(), postCodes.get(i).getLongitude(),
+          centralKirkwall.getLatitude(), centralKirkwall.getLongitude());
     }
 
     // Multi-passenger bus (assumes oil)
@@ -1584,7 +1532,10 @@ if (!transportVisualized)
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
 					<ShowLabel>true</ShowLabel>
-					<Body><![CDATA[if (currYear > year && capacityCsv.canReadMore())
+					<Body><![CDATA[// Not used anymore. Toy electricity grid data from csv
+/*
+// Read a row of data from csv
+if (currYear > year && capacityCsv.canReadMore())
 {
   year = capacityCsv.readInt();
   coal = capacityCsv.readInt();
@@ -1612,7 +1563,205 @@ if (RAND_CAPACITY)
 // Update all the charts
 updateStacked();
 updateTimeStacked();
-updateDemandPlot();]]></Body>
+updateDemandPlot();
+*/]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1732557884332</Id>
+					<Name><![CDATA[makeRails]]></Name>
+					<Description><![CDATA[Create locations for custom rail network.]]></Description>
+					<X>-160</X><Y>240</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[rails.clear();
+
+// List of lat-long locations on train loop
+// Key-value pairs (name, LatLong)
+HashMap<String, LatLong> railStops = new HashMap<String, LatLong>();
+railStops.put("Holm", new LatLong(58.90588f, -2.88337f));
+railStops.put("Airport", new LatLong(58.95376f, -2.9023f));
+railStops.put("Kirkwall", new LatLong(58.9816f, -2.96037f));
+railStops.put("Finstown", new LatLong(59.00666f, -3.11541f));
+railStops.put("Evie", new LatLong(59.10472f, -3.08829f));
+railStops.put("Birsay", new LatLong(59.12954f, -3.31337f));
+railStops.put("Dounby", new LatLong(59.06805f, -3.23114f));
+railStops.put("Stromness", new LatLong(58.96144f, -3.29938f));
+railStops.put("Stenness", new LatLong(58.98605f, -3.21133f));
+railStops.put("Orphir", new LatLong(58.93624f, -3.14507f));
+
+/*
+// List of lat-long locations on train loop
+// Key-value pairs (name, {lat, long})
+// NOTE: Cannot enforce array size or ordering, but primitive type allows the
+// call to getRoute() to be more readable, without needing to convert Object
+// wrapper Double (required for custom 2-tupe types) to double.
+HashMap<String, double[]> railStops = new HashMap<String, double[]>();
+railStops.put("Holm", new double[] {58.90588, -2.88337});
+railStops.put("Airport", new double[] {58.95376, -2.9023});
+railStops.put("Kirkwall", new double[] {58.9816, -2.96037});
+railStops.put("Finstown", new double[] {59.00666, -3.11541});
+railStops.put("Evie", new double[] {59.10472, -3.08829});
+railStops.put("Birsay", new double[] {59.12954, -3.31337});
+railStops.put("Dounby", new double[] {59.06805, -3.23114});
+railStops.put("Stromness", new double[] {58.96144, -3.29938});
+railStops.put("Stenness", new double[] {58.98605, -3.21133});
+railStops.put("Orphir", new double[] {58.93624, -3.14507});
+*/
+
+/* (lat, long)
+Holm: 58.90588, -2.88337
+Airport: 58.95376, -2.9023
+Kirkwall: 58.9816, -2.96037
+Finstown: 59.00666, -3.11541
+Evie: 59.10472, -3.08829
+Birsay: 59.12954, -3.31337
+Dounby: 59.06805, -3.23114
+Stromness: 58.96144, -3.29938
+Stenness: 58.98605, -3.21133
+Orphir: 58.93624, -3.14507
+*/
+
+
+GISRoute route = null;
+ShapeGISMap gismap = this.map;
+if (gismap == null)
+{
+  System.err.println("No ShapeGISMap found");
+  return;
+}
+
+Color railColor = new Color(255, 0, 255, 180);
+
+// Find routes to connect the rail stops
+route = gismap.getRoute(
+    //railStops.get("Holm")[0], railStops.get("Holm")[1],
+    //railStops.get("Airport")[0], railStops.get("Airport")[1]);
+    railStops.get("Holm").getLat(), railStops.get("Holm").getLong(),
+    railStops.get("Airport").getLat(), railStops.get("Airport").getLong());
+rails.add(route);
+
+route = gismap.getRoute(
+    railStops.get("Airport").getLat(), railStops.get("Airport").getLong(),
+    railStops.get("Kirkwall").getLat(), railStops.get("Kirkwall").getLong());
+rails.add(route);
+
+route = gismap.getRoute(
+    railStops.get("Kirkwall").getLat(), railStops.get("Kirkwall").getLong(),
+    railStops.get("Finstown").getLat(), railStops.get("Finstown").getLong());
+rails.add(route);
+
+route = gismap.getRoute(
+    railStops.get("Finstown").getLat(), railStops.get("Finstown").getLong(),
+    railStops.get("Evie").getLat(), railStops.get("Evie").getLong());
+rails.add(route);
+
+route = gismap.getRoute(
+    railStops.get("Evie").getLat(), railStops.get("Evie").getLong(),
+    railStops.get("Birsay").getLat(), railStops.get("Birsay").getLong());
+rails.add(route);
+
+route = gismap.getRoute(
+    railStops.get("Birsay").getLat(), railStops.get("Birsay").getLong(),
+    railStops.get("Dounby").getLat(), railStops.get("Dounby").getLong());
+rails.add(route);
+
+route = gismap.getRoute(
+    railStops.get("Dounby").getLat(), railStops.get("Dounby").getLong(),
+    railStops.get("Stromness").getLat(), railStops.get("Stromness").getLong());
+rails.add(route);
+
+route = gismap.getRoute(
+    railStops.get("Stromness").getLat(), railStops.get("Stromness").getLong(),
+    railStops.get("Stenness").getLat(), railStops.get("Stenness").getLong());
+rails.add(route);
+
+route = gismap.getRoute(
+    railStops.get("Stenness").getLat(), railStops.get("Stenness").getLong(),
+    railStops.get("Orphir").getLat(), railStops.get("Orphir").getLong());
+rails.add(route);
+
+route = gismap.getRoute(
+    railStops.get("Orphir").getLat(), railStops.get("Orphir").getLong(),
+    railStops.get("Holm").getLat(), railStops.get("Holm").getLong());
+rails.add(route);
+
+// Set visualization parameters for all routes on the rail
+for (int i = 0; i < rails.size(); ++i)
+{
+  route = rails.get(i);
+  route.setVisible(true);
+  route.setLineColor(railColor);
+  route.setLineWidth(10);
+}
+]]></Body>
+				</Function>
+				<Function AccessType="default" StaticFunction="false">
+					<ReturnModificator>VOID</ReturnModificator>
+					<ReturnType><![CDATA[double]]></ReturnType>
+					<Id>1733179502428</Id>
+					<Name><![CDATA[initTransport]]></Name>
+					<X>-160</X><Y>180</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>false</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<Body><![CDATA[// Only run once
+if (transportInited)
+{
+  return;
+}
+
+// Debug output: See transport types
+RouteProviderTransportType[] transportType = RouteProviderTransportType.values();
+System.out.println("Transport type:");
+for (int i = 0; i < transportType.length; ++i)
+{
+  System.out.println(transportType[i]);
+}
+
+// km
+double distToKirkwall = 0.0;
+double walkDistToKirkwall = 0.0;
+
+distsToKirkwall = new double[postCodes.size()];
+
+// Calculate distance from each post code to a fixed location
+for (int i = 0; i < postCodes.size(); ++i)
+{
+  // If post code is identical to destination, distance will be 0 and error
+  // will be thrown. Skip it
+  if (postCodes.get(i).postcode.equals(centralKirkwall.postcode))
+  {
+    continue;
+  }
+
+  try
+  {
+    // Unit: distanceByRoute() returns meters
+    // Convert to km for energy and fuel calculations
+    distToKirkwall = 0.001 * postCodes.get(i).distanceByRoute(centralKirkwall);
+
+    // Save to array for future iters
+    //distsToKirkwall.add(distToKirkwall);
+    distsToKirkwall[i] = distToKirkwall;
+  }
+  catch (java.lang.RuntimeException e)
+  {
+    // Skip the post code if a route cannot be found
+    continue;
+  }
+}
+
+// Create rail network
+makeRails();
+
+// Set flag to not run again
+transportInited = true;
+]]></Body>
 				</Function>
 			</Functions>
 			<AnalysisData>
@@ -2333,6 +2482,7 @@ updateDemandPlot();]]></Body>
 				<GISPoint>
 					<Id>1723222523382</Id>
 					<Name><![CDATA[KirkwallGISPoint]]></Name>
+					<Description><![CDATA[(lat, long): 58.9816, -2.96037]]></Description>
 					<X>0</X><Y>0</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>true</PublicFlag>
@@ -2349,6 +2499,213 @@ updateDemandPlot();]]></Body>
 					<ReadOnly>true</ReadOnly>
 					<Latitude>58.9816049</Latitude>	
 					<Longitude>-2.960369</Longitude>
+					<Radius>3</Radius>
+					<FillColor>2144175423</FillColor>
+				</GISPoint>
+				<GISPoint>
+					<Id>1732562868275</Id>
+					<Name><![CDATA[Stromness]]></Name>
+					<Description><![CDATA[58.96144, -3.29938]]></Description>
+					<X>0</X><Y>0</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<Z>0</Z>
+					<LineColor>-5952982</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineWidth>1</LineWidth>
+					<LineStyle>SOLID</LineStyle>
+					<OsmId>410395804</OsmId>
+					<Title><![CDATA[Stromness, Orkney Islands, Alba / Scotland, KW16 3BU, United Kingdom]]></Title>
+					<ReadOnly>true</ReadOnly>
+					<Latitude>58.9614356</Latitude>	
+					<Longitude>-3.2993767</Longitude>
+					<Radius>3</Radius>
+					<FillColor>2144175423</FillColor>
+				</GISPoint>
+				<GISPoint>
+					<Id>1732562928023</Id>
+					<Name><![CDATA[Stenness]]></Name>
+					<Description><![CDATA[58.98605, -3.21133]]></Description>
+					<X>0</X><Y>0</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<Z>0</Z>
+					<LineColor>-5952982</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineWidth>1</LineWidth>
+					<LineStyle>SOLID</LineStyle>
+					<OsmId>1890136104</OsmId>
+					<Title><![CDATA[Stenness, Orkney Islands, Alba / Scotland, KW16 3LF, United Kingdom]]></Title>
+					<ReadOnly>true</ReadOnly>
+					<Latitude>58.9860486</Latitude>	
+					<Longitude>-3.2113294</Longitude>
+					<Radius>3</Radius>
+					<FillColor>2144175423</FillColor>
+				</GISPoint>
+				<GISPoint>
+					<Id>1732562962284</Id>
+					<Name><![CDATA[Dounby]]></Name>
+					<Description><![CDATA[59.06805, -3.23114]]></Description>
+					<X>0</X><Y>0</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<Z>0</Z>
+					<LineColor>-5952982</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineWidth>1</LineWidth>
+					<LineStyle>SOLID</LineStyle>
+					<OsmId>615924961</OsmId>
+					<Title><![CDATA[Dounby, Orkney Islands, Alba / Scotland, KW17 2HU, United Kingdom]]></Title>
+					<ReadOnly>true</ReadOnly>
+					<Latitude>59.068048</Latitude>	
+					<Longitude>-3.2311373</Longitude>
+					<Radius>3</Radius>
+					<FillColor>2144175423</FillColor>
+				</GISPoint>
+				<GISPoint>
+					<Id>1732562987311</Id>
+					<Name><![CDATA[Holm]]></Name>
+					<Description><![CDATA[58.90588, -2.88337]]></Description>
+					<X>0</X><Y>0</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<Z>0</Z>
+					<LineColor>-5952982</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineWidth>1</LineWidth>
+					<LineStyle>SOLID</LineStyle>
+					<OsmId>5586457086</OsmId>
+					<Title><![CDATA[Holm, Orkney Islands, Alba / Scotland, KW17 2RX, United Kingdom]]></Title>
+					<ReadOnly>true</ReadOnly>
+					<Latitude>58.9058753</Latitude>	
+					<Longitude>-2.883371</Longitude>
+					<Radius>3</Radius>
+					<FillColor>2144175423</FillColor>
+				</GISPoint>
+				<GISPoint>
+					<Id>1732562999008</Id>
+					<Name><![CDATA[Finstown]]></Name>
+					<Description><![CDATA[59.00666, -3.11541]]></Description>
+					<X>0</X><Y>0</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<Z>0</Z>
+					<LineColor>-5952982</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineWidth>1</LineWidth>
+					<LineStyle>SOLID</LineStyle>
+					<OsmId>615929271</OsmId>
+					<Title><![CDATA[Finstown, Orkney Islands, Alba / Scotland, KW17 2EE, United Kingdom]]></Title>
+					<ReadOnly>true</ReadOnly>
+					<Latitude>59.0066581</Latitude>	
+					<Longitude>-3.1154069</Longitude>
+					<Radius>3</Radius>
+					<FillColor>2144175423</FillColor>
+				</GISPoint>
+				<GISPoint>
+					<Id>1732563031547</Id>
+					<Name><![CDATA[Orphir]]></Name>
+					<Description><![CDATA[58.93624, -3.14507]]></Description>
+					<X>0</X><Y>0</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<Z>0</Z>
+					<LineColor>-5952982</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineWidth>1</LineWidth>
+					<LineStyle>SOLID</LineStyle>
+					<OsmId>3593679218</OsmId>
+					<Title><![CDATA[Orphir, Orkney Islands, Alba / Scotland, KW17 2RQ, United Kingdom]]></Title>
+					<ReadOnly>true</ReadOnly>
+					<Latitude>58.9362373</Latitude>	
+					<Longitude>-3.1450715</Longitude>
+					<Radius>3</Radius>
+					<FillColor>2144175423</FillColor>
+				</GISPoint>
+				<GISPoint>
+					<Id>1732564586598</Id>
+					<Name><![CDATA[Birsay]]></Name>
+					<Description><![CDATA[59.12954, -3.31337]]></Description>
+					<X>0</X><Y>0</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<Z>0</Z>
+					<LineColor>-5952982</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineWidth>1</LineWidth>
+					<LineStyle>SOLID</LineStyle>
+					<OsmId>5586342586</OsmId>
+					<Title><![CDATA[Birsay, Orkney Islands, Alba / Scotland, KW17 2LL, United Kingdom]]></Title>
+					<ReadOnly>true</ReadOnly>
+					<Latitude>59.1295359</Latitude>	
+					<Longitude>-3.3133698</Longitude>
+					<Radius>3</Radius>
+					<FillColor>2144175423</FillColor>
+				</GISPoint>
+				<GISPoint>
+					<Id>1732564599809</Id>
+					<Name><![CDATA[Evie]]></Name>
+					<Description><![CDATA[59.10472, -3.08829]]></Description>
+					<X>0</X><Y>0</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<Z>0</Z>
+					<LineColor>-5952982</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineWidth>1</LineWidth>
+					<LineStyle>SOLID</LineStyle>
+					<OsmId>5586342587</OsmId>
+					<Title><![CDATA[Evie, Orkney Islands, Alba / Scotland, KW17 2PF, United Kingdom]]></Title>
+					<ReadOnly>true</ReadOnly>
+					<Latitude>59.1047175</Latitude>	
+					<Longitude>-3.0882896</Longitude>
+					<Radius>3</Radius>
+					<FillColor>2144175423</FillColor>
+				</GISPoint>
+				<GISPoint>
+					<Id>1732564805169</Id>
+					<Name><![CDATA[KirkwallAirport]]></Name>
+					<Description><![CDATA[58.95376, -2.9023]]></Description>
+					<X>0</X><Y>0</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>false</ShowLabel>
+					<DrawMode>SHAPE_DRAW_2D3D</DrawMode>
+					<Z>0</Z>
+					<LineColor>-5952982</LineColor>
+					<LineMaterial>null</LineMaterial>
+					<LineWidth>1</LineWidth>
+					<LineStyle>SOLID</LineStyle>
+					<OsmId>118920691</OsmId>
+					<Title><![CDATA[Kirkwall Airport, Kirkwall Airport Terminal, Orkney Islands, Alba / Scotland, KW17 2QX, United Kingdom]]></Title>
+					<ReadOnly>true</ReadOnly>
+					<Latitude>58.9537636</Latitude>	
+					<Longitude>-2.9022964990238824</Longitude>
 					<Radius>3</Radius>
 					<FillColor>2144175423</FillColor>
 				</GISPoint>
@@ -5073,14 +5430,14 @@ updateDemandPlot();]]></Body>
 				<Title><![CDATA[Rock Island]]></Title>	
 				<EnableDeveloperPanel>true</EnableDeveloperPanel>
 				<ShowDeveloperPanelOnStart>true</ShowDeveloperPanelOnStart>
-				<RealTimeScale>10.0</RealTimeScale>
+				<RealTimeScale>5.0</RealTimeScale>
 			</PresentationProperties>
 			<ModelTimeProperties>
 				<StopOption><![CDATA[Stop at specified date]]></StopOption>
-				<InitialDate><![CDATA[-978307200000]]></InitialDate>	
+				<InitialDate><![CDATA[1577836800000]]></InitialDate>	
 				<InitialTime><![CDATA[0.0]]></InitialTime>	
-				<FinalDate><![CDATA[4133937540000]]></FinalDate>	
-				<FinalTime><![CDATA[162.10821727549467]]></FinalTime>	
+				<FinalDate><![CDATA[4733510400000]]></FinalDate>	
+				<FinalTime><![CDATA[100.06575342465753]]></FinalTime>	
 			</ModelTimeProperties>
 			<BypassInitialScreen>false</BypassInitialScreen>
 		</SimulationExperiment>	
