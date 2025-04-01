@@ -98,7 +98,8 @@ double busFuelTotal = 0;
 double walkFuelTotal = 0;
 
 // Whether to visualize individual agent routes
-final boolean VIS_AGENT_ROUTES = false;
+// TODO: Add toggle in UI to turn this on and off
+boolean vis_agent_routes = false;
 
 // Calculations from J Boulton for energy consumed by distance traveled
 // Average occupancy in car in Germany
@@ -130,7 +131,7 @@ final float GJ_ENERGY_PER_TON_GAS = 44.75f;
 final float MJ_ENERGY_PER_L_GAS = GJ_ENERGY_PER_TON_GAS * 1000 / L_IN_TONNE_GAS;
 
 // For custom rails
-GISNetwork rails = null;
+GISNetwork railNetwork = null;
 // Keep track of the rails so we can batch process them. GISNetwork doesn't
 // expose added rails back to user.
 //Vector<GISRoute> railsList = new Vector<GISRoute>();
@@ -272,6 +273,47 @@ initTransport();]]></StartupCode>
 					<RoutingMethod>FASTEST</RoutingMethod>
 					<PathfindingAlgorithm>DIJKSTRABI</PathfindingAlgorithm>
 					<CustomRouteProvider>false</CustomRouteProvider>
+					<RouteSourceResourceReference>
+					</RouteSourceResourceReference>
+					<RouteGraphResourceReference>
+					</RouteGraphResourceReference>
+				</RouteProvider>
+				<RouteProvider>
+					<Id>1733184274503</Id>
+					<Name><![CDATA[railRouteProvider]]></Name>
+					<X>-160</X><Y>90</Y>
+					<Label><X>10</X><Y>0</Y></Label>
+					<PublicFlag>true</PublicFlag>
+					<PresentationFlag>true</PresentationFlag>
+					<ShowLabel>true</ShowLabel>
+					<RouteProviderType>WEB_SERVICE</RouteProviderType>
+					<RouteNotFound>SHOW_ERROR_DIALOG</RouteNotFound>
+					<OnlineRouteProvider>ANYLOGIC</OnlineRouteProvider>
+					<TransportType>RAIL</TransportType>
+					<RoutingMethod>FASTEST</RoutingMethod>
+					<PathfindingAlgorithm>DIJKSTRABI</PathfindingAlgorithm>
+					<CustomRouteProvider>true</CustomRouteProvider>
+					<CustomRouteProviderCode><![CDATA[// TODO look into how to make it use my custom GISNetwork `railNetwork`
+
+(startLat, startLon, endLat, endLon) ->
+{
+  GISNode startNode = this.railNetwork.getNearestNode(startLat, startLon);
+  GISNode endNode = this.railNetwork.getNearestNode(endLat, endLon);
+
+  // TODO: I think you actually do the exact same thing as GISNetwork, just get a route from gismap.
+  // Then use this custom RouteProvider to create the GISNetwork, instead of the other way around!
+  // ... No, that can't be. Because then, there will be a route from anywhere to anywhere else!!!
+  // Then there's no difference between this route provider and the car one!!!
+  //railNetwork.getNearestPath()
+  //railNetwork.paths()
+
+  //Agent moves along a straight line
+  Curve<GISMarkupSegment> curve = new Curve<>();
+  GISMarkupSegment segment = new GISMarkupSegmentLine(startLat, startLon, endLat, endLon);
+  curve.addSegment(segment);
+  curve.initialize();
+  return curve;
+}]]></CustomRouteProviderCode>
 					<RouteSourceResourceReference>
 					</RouteSourceResourceReference>
 					<RouteGraphResourceReference>
@@ -1249,7 +1291,7 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
     //    postCodes.get(i).getLongitude(), 1000 * walkDistToKirkwall);
 
     // Visualize walking route
-    if (VIS_AGENT_ROUTES && !transportVisualized && gismap != null)
+    if (vis_agent_routes && !transportVisualized && gismap != null)
     {
       route = walkRouteProvider.getRoute(gismap,
           postCodes.get(i).getLatitude(), postCodes.get(i).getLongitude(),
@@ -1365,7 +1407,7 @@ for (int i = 0; i < distsToKirkwall.length; ++i)
     }
 
     // Visualize route
-    if (!VIS_AGENT_ROUTES)
+    if (!vis_agent_routes)
     {
       route.setVisible(false);
     }
@@ -1517,61 +1559,62 @@ GISPoint orphirGP = new GISPoint(gismap, 58.93624, -3.14507);
 orphirGP.initialize();
 
 // 3rd arg is visibility
-rails = new GISNetwork(this.map, "Rail Network", true);
+this.railNetwork = new GISNetwork(this.map, "Rail Network", true);
 // Add all stops to rail network
-rails.addAll(holmGP, airportGP, kirkwallGP, finstownGP, evieGP, birsayGP,
+this.railNetwork.addAll(holmGP, airportGP, kirkwallGP, finstownGP, evieGP, birsayGP,
     dounbyGP, stromnessGP, stennessGP, orphirGP);
 
 // Find routes to connect the rail stops
 route = gismap.getRoute(
+//route = railRouteProvider.getRoute(
     holmGP.getLatitude(), holmGP.getLongitude(),
     airportGP.getLatitude(), airportGP.getLongitude());
-rails.add(route);
+this.railNetwork.add(route);
 
 route = gismap.getRoute(
     airportGP.getLatitude(), airportGP.getLongitude(),
     kirkwallGP.getLatitude(), kirkwallGP.getLongitude());
-rails.add(route);
+this.railNetwork.add(route);
 
 route = gismap.getRoute(
     kirkwallGP.getLatitude(), kirkwallGP.getLongitude(),
     finstownGP.getLatitude(), finstownGP.getLongitude());
-rails.add(route);
+this.railNetwork.add(route);
 
 route = gismap.getRoute(
     finstownGP.getLatitude(), finstownGP.getLongitude(),
     evieGP.getLatitude(), evieGP.getLongitude());
-rails.add(route);
+this.railNetwork.add(route);
 
 route = gismap.getRoute(
     evieGP.getLatitude(), evieGP.getLongitude(),
     birsayGP.getLatitude(), birsayGP.getLongitude());
-rails.add(route);
+this.railNetwork.add(route);
 
 route = gismap.getRoute(
     birsayGP.getLatitude(), birsayGP.getLongitude(),
     dounbyGP.getLatitude(), dounbyGP.getLongitude());
-rails.add(route);
+this.railNetwork.add(route);
 
 route = gismap.getRoute(
     dounbyGP.getLatitude(), dounbyGP.getLongitude(),
     stromnessGP.getLatitude(), stromnessGP.getLongitude());
-rails.add(route);
+this.railNetwork.add(route);
 
 route = gismap.getRoute(
     stromnessGP.getLatitude(), stromnessGP.getLongitude(),
     stennessGP.getLatitude(), stennessGP.getLongitude());
-rails.add(route);
+this.railNetwork.add(route);
 
 route = gismap.getRoute(
     stennessGP.getLatitude(), stennessGP.getLongitude(),
     orphirGP.getLatitude(), orphirGP.getLongitude());
-rails.add(route);
+this.railNetwork.add(route);
 
 route = gismap.getRoute(
     orphirGP.getLatitude(), orphirGP.getLongitude(),
     holmGP.getLatitude(), holmGP.getLongitude());
-rails.add(route);
+this.railNetwork.add(route);
 
 /*
 // Custom colors don't work once routes added to GISNetwork :( How stupid
@@ -1586,7 +1629,7 @@ for (int i = 0; i < railsList.size(); ++i)
 }
 */
 
-rails.initialize();
+this.railNetwork.initialize();
 ]]></Body>
 				</Function>
 				<Function AccessType="default" StaticFunction="false">
@@ -2912,7 +2955,7 @@ transportInited = true;
 					<ShowLegend>true</ShowLegend>
 					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
 					<TimeWindowUnits>YEAR</TimeWindowUnits>
-					<TimeWindowExpression><![CDATA[161]]></TimeWindowExpression>
+					<TimeWindowExpression><![CDATA[101]]></TimeWindowExpression>
 					<DatasetExpression>
 					<Id>1721301221923</Id>
 					<Expression><![CDATA[my_dataset2]]></Expression>
@@ -2945,7 +2988,7 @@ transportInited = true;
 					<Expression2Flag>true</Expression2Flag>
 							<Title><![CDATA[Walk]]></Title>
 					</DatasetExpression>
-					<SamplesToKeep>161</SamplesToKeep>
+					<SamplesToKeep>101</SamplesToKeep>
 					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
 					<VerScaleType>AUTO</VerScaleType>
 					<LabelFormat>yyyy</LabelFormat>
@@ -4660,7 +4703,7 @@ transportInited = true;
 					<ShowLegend>true</ShowLegend>
 					<TimeWindowsMovementType>MOVEMENT_WITH_TIME</TimeWindowsMovementType>		
 					<TimeWindowUnits>YEAR</TimeWindowUnits>
-					<TimeWindowExpression><![CDATA[161]]></TimeWindowExpression>
+					<TimeWindowExpression><![CDATA[101]]></TimeWindowExpression>
 					<DatasetExpression>
 					<Id>1732232899125</Id>
 					<Expression><![CDATA[my_dataset2]]></Expression>
@@ -4693,7 +4736,7 @@ transportInited = true;
 					<Expression2Flag>true</Expression2Flag>
 							<Title><![CDATA[Walk]]></Title>
 					</DatasetExpression>
-					<SamplesToKeep>161</SamplesToKeep>
+					<SamplesToKeep>101</SamplesToKeep>
 					<VerScaleToExpression><![CDATA[1]]></VerScaleToExpression>
 					<VerScaleType>AUTO</VerScaleType>
 					<LabelFormat>yyyy</LabelFormat>
