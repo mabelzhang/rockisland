@@ -48,3 +48,7 @@ The user has the ability to configure the initial (year 0) and final (year 100) 
 
 - The map of Orkney Islands is chosen for convenience of illustration and proof of concept. The data on vehicles and fuel consumption come from general UK data and do not reflect Orkney-specific vehicle distribution. It may or may not be representative of the actual consumption patterns of this geographical area.
 - Postal code locations off the main island will need to be pruned, as transport will involve ferries, which are not yet in the data considered.
+
+## Future work
+
+- Energy consumption on the alternative transport loop, which is meant to carry passengers to each town, with some residual distance to be carried out by car or active transport to the final destination postal code, still needs to be calculated. Passengers from each postal code should select the station in the loop route closest to them.
