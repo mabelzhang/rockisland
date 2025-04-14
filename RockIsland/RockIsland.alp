@@ -7,7 +7,7 @@
 <AnyLogicWorkspace WorkspaceVersion="1.9" AnyLogicVersion="8.9.0.202404161222" AlpVersion="8.9.0">
 <Model>
 	<Id>1721057739065</Id>
-	<Name><![CDATA[RockIsland1]]></Name>
+	<Name><![CDATA[RockIsland]]></Name>
 	<Description><![CDATA[A hypothetical island's energy capacity and system dynamics as influenced by changes in energy distribution over time.]]></Description>
 	<EngineVersion>6</EngineVersion>
 	<JavaPackageName><![CDATA[rockisland1]]></JavaPackageName>
@@ -5355,7 +5355,7 @@ transportInited = true;
 					<Z>0</Z>
 					<Rotation>0.0</Rotation>
 					<Color>-12490271</Color>
-					<Text><![CDATA[RockIsland1]]></Text>
+					<Text><![CDATA[RockIsland]]></Text>
 					<Font>
 						<Name>SansSerif</Name>
 						<Size>24</Size>
